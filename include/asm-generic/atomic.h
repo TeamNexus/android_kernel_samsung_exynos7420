@@ -49,6 +49,10 @@
 #define cpu_relaxed_read_atomic(v) atomic_read(v)
 #endif
 
+#ifndef cpu_relaxed_read_atomic
+#define cpu_relaxed_read_atomic(v) atomic_read(v)
+#endif
+
 /**
  * atomic_set - set atomic variable
  * @v: pointer of type atomic_t
