@@ -108,6 +108,11 @@ int aarch64_insn_patch_text_nosync(void *addr, u32 insn);
 int aarch64_insn_patch_text_sync(void *addrs[], u32 insns[], int cnt);
 int aarch64_insn_patch_text(void *addrs[], u32 insns[], int cnt);
 
-#endif  /* __ASSEMBLY__ */
+#define A32_RN_OFFSET	16
+#define A32_RT_OFFSET	12
+#define A32_RT2_OFFSET	 0
+
+u32 aarch32_insn_extract_reg_num(u32 insn, int offset);
+#endif /* __ASSEMBLY__ */
 
 #endif	/* __ASM_INSN_H */
