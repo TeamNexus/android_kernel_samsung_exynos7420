@@ -113,6 +113,8 @@ int aarch64_insn_patch_text(void *addrs[], u32 insns[], int cnt);
 #define A32_RT2_OFFSET	 0
 
 u32 aarch32_insn_extract_reg_num(u32 insn, int offset);
+u32 aarch32_insn_mcr_extract_opc2(u32 insn);
+u32 aarch32_insn_mcr_extract_crm(u32 insn);
 #endif /* __ASSEMBLY__ */
 
 #endif	/* __ASM_INSN_H */
