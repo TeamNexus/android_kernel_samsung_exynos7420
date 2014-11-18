@@ -36,6 +36,8 @@ arm64-obj-$(CONFIG_ARCH_EXYNOS)		+= exynos-smc.o
 arm64-obj-$(CONFIG_TIMA_RKP)		+= rkp_entry.o
 # from android-3.10
 arm64-obj-$(CONFIG_ARM_CPU_SUSPEND)	+= sleep.o suspend.o
+# from android-4.9-o
+arm64-obj-$(CONFIG_ARMV8_DEPRECATED)	+= armv8_deprecated.o
 
 obj-$(CONFIG_SWP_EMULATE)	+= swp_emulate.o
 
