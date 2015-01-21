@@ -50,6 +50,7 @@
 #define APM_CPU_PART_POTENZA	0x0000
 
 #define SCTLR_EL1_CP15BEN	(0x1 << 5)
+#define SCTLR_EL1_SED		(0x1 << 8)
 
 #ifndef __ASSEMBLY__
 
