@@ -1228,9 +1228,9 @@ struct hmp_global_attr {
 };
 
 #ifdef CONFIG_HMP_FREQUENCY_INVARIANT_SCALE
-#define HMP_DATA_SYSFS_MAX 19
+#define HMP_DATA_SYSFS_MAX 21
 #else
-#define HMP_DATA_SYSFS_MAX 18
+#define HMP_DATA_SYSFS_MAX 20
 #endif
 
 struct hmp_data_struct {
@@ -4466,11 +4466,21 @@ static int hmp_freqinvar_from_sysfs(int value)
 #endif
 #ifdef CONFIG_SCHED_HMP_LITTLE_PACKING
 /* packing value must be non-negative */
-static int hmp_packing_from_sysfs(int value)
+static int hmp_packing_limit_from_sysfs(int value)
 {
 	if (value < 0)
 		return -1;
-	return value;
+	
+	hmp_full_threshold = value;
+	
+	return 0;
+}
+
+static int hmp_packing_from_sysfs(int value)
+{
+	hmp_packing_enabled = !!value;
+	
+	return 0;
 }
 #endif
 static void hmp_attr_add(
@@ -4591,11 +4601,11 @@ static int hmp_attr_init(void)
 	hmp_attr_add("packing_enable",
 		&hmp_packing_enabled,
 		NULL,
-		hmp_freqinvar_from_sysfs);
+		hmp_packing_from_sysfs);
 	hmp_attr_add("packing_limit",
 		&hmp_full_threshold,
 		NULL,
-		hmp_packing_from_sysfs);
+		hmp_packing_limit_from_sysfs);
 #endif
 	hmp_data.attr_group.name = "hmp";
 	hmp_data.attr_group.attrs = hmp_data.attributes;
