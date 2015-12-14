@@ -18,6 +18,7 @@
 #include <dt-bindings/sysmmu/sysmmu.h>
 /include/ "exynos7420-pinctrl.dtsi"
 /include/ "exynos7420-noc.dtsi"
+/include/ "exynos7420-cpus.dtsi"
 / {
 	compatible = "samsung,armv8", "samsung,exynos7420";
 	interrupt-parent = <&gic>;
@@ -80,139 +81,6 @@
 		scaler1 = &scaler_1;
 		jpeg0 = &jpeg_0;
 		mfc0 = &mfc_0;
-	};
-
-	cpus {
-		#address-cells = <2>;
-		#size-cells = <0>;
-
-		idle-states {
-                        entry-method = "arm,psci";
-			multiple_drv_count = <2>;
-
-			CPU_SLEEP_0: C1 {
-				compatible = "arm,idle-state";
-
-				CLUSTER0_C1 {
-					desc = "ATLAS clock gating(WFI)";
-					entry-method-param = <0x0000000>;
-					exit-latency-us = <1>;
-					min-residency-us = <500>;
-					status = "enabled";
-					cluster = <0>;
-				};
-
-				CLUSTER1_C1 {
-					desc = "APOLLO clock gating(WFI)";
-					entry-method-param = <0x0000000>;
-					exit-latency-us = <1>;
-					min-residency-us = <500>;
-					status = "enabled";
-					cluster = <1>;
-				};
-			};
-
-			CPU_SLEEP_1: C2 {
-				compatible = "arm,idle-state";
-
-				CLUSTER0_C2 {
-					desc = "ATLAS power down";
-					entry-method-param = <0x0000000>;
-					exit-latency-us = <100>;
-					min-residency-us = <2000>;
-					status = "enabled";
-					cluster = <0>;
-				};
-
-				CLUSTER1_C2 {
-					desc = "APOLLO power down";
-					entry-method-param = <0x0000000>;
-					exit-latency-us = <100>;
-					min-residency-us = <750>;
-					status = "enabled";
-					cluster = <1>;
-				};
-			};
-
-			CPU_SLEEP_2: LPM {
-				compatible = "arm,idle-state";
-
-				CLUSTER0_LPM {
-					desc = "System power down";
-					entry-method-param = <0x1000000>;
-					exit-latency-us = <300>;
-					min-residency-us = <3000>;
-					status = "enabled";
-					cluster = <0>;
-				};
-
-				CLUSTER1_LPM {
-					desc = "System power down";
-					entry-method-param = <0x1000000>;
-					exit-latency-us = <300>;
-					min-residency-us = <3000>;
-					status = "enabled";
-					cluster = <1>;
-				};
-			};
-		};
-
-		cpu@100 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a53", "arm,armv8";
-			reg = <0x0 0x100>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@101 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a53", "arm,armv8";
-			reg = <0x0 0x101>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@102 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a53", "arm,armv8";
-			reg = <0x0 0x102>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@103 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a53", "arm,armv8";
-			reg = <0x0 0x103>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@0 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a57", "arm,armv8";
-			reg = <0x0 0x0>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@1 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a57", "arm,armv8";
-			reg = <0x0 0x1>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@2 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a57", "arm,armv8";
-			reg = <0x0 0x2>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
-		cpu@3 {
-			device_type = "cpu";
-			compatible = "arm,cortex-a57", "arm,armv8";
-			reg = <0x0 0x3>;
-			enable-method = "psci";
-			cpu-idle-states = <&CPU_SLEEP_0 &CPU_SLEEP_1 &CPU_SLEEP_2>;
-		};
 	};
 
 	coresight {

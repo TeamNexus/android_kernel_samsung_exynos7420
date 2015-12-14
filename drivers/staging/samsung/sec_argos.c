@@ -351,6 +351,7 @@ int argos_irq_affinity_apply(int dev_num, bool enable)
 
 int argos_hmpboost_apply(int dev_num, bool enable)
 {
+#ifdef CONFIG_SCHED_HMP
 	bool *hmpboost_enable;
 
 	hmpboost_enable = &argos_pdata->devices[dev_num].hmpboost_enable;
@@ -370,6 +371,7 @@ int argos_hmpboost_apply(int dev_num, bool enable)
 			pr_info("%s: hmp boost disable [%d]\n", __func__, dev_num);
 		}
 	}
+#endif/* CONFIG_SCHED_HMP */
 
 	return 0;
 }
