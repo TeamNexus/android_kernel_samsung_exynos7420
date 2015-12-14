@@ -33,6 +33,7 @@
 #include <linux/syscore_ops.h>
 
 #include <trace/events/power.h>
+#include <linux/sched.h>
 
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
@@ -49,6 +50,7 @@ static DEFINE_PER_CPU(char[CPUFREQ_NAME_LEN], cpufreq_cpu_governor);
 #endif
 static DEFINE_RWLOCK(cpufreq_driver_lock);
 static DEFINE_MUTEX(cpufreq_governor_lock);
+static DEFINE_PER_CPU(unsigned long, max_freq_scale) = SCHED_CAPACITY_SCALE;
 
 /*
  * cpu_policy_rwsem is a per CPU reader-writer semaphore designed to cure
@@ -136,6 +138,12 @@ bool have_governor_per_policy(void)
 	return cpufreq_driver->have_governor_per_policy;
 }
 EXPORT_SYMBOL_GPL(have_governor_per_policy);
+
+bool cpufreq_driver_is_slow(void)
+{
+	return !(cpufreq_driver->flags & CPUFREQ_DRIVER_FAST);
+}
+EXPORT_SYMBOL_GPL(cpufreq_driver_is_slow);
 
 struct kobject *get_governor_parent_kobj(struct cpufreq_policy *policy)
 {
@@ -261,6 +269,10 @@ static inline void adjust_jiffies(unsigned long val, struct cpufreq_freqs *ci)
 }
 #endif
 
+unsigned long cpufreq_scale_max_freq_capacity(int cpu)
+{
+		return per_cpu(max_freq_scale, cpu);
+}
 
 void __cpufreq_notify_transition(struct cpufreq_policy *policy,
 		struct cpufreq_freqs *freqs, unsigned int state)
