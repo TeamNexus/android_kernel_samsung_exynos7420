@@ -196,6 +196,12 @@ DEFINE_EVENT(power_domain, power_domain_target,
 
 	TP_ARGS(name, state, cpu_id)
 );
+
+DEFINE_EVENT(cpu, cpu_capacity,
+
+	TP_PROTO(unsigned int capacity, unsigned int cpu_id),
+	TP_ARGS(capacity, cpu_id)
+);
 #endif /* _TRACE_POWER_H */
 
 /* This part must be outside protection */

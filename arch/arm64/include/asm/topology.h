@@ -58,6 +58,10 @@ const struct cpumask *cpu_coregroup_mask(int cpu);
 #endif
 #endif /* CONFIG_DISABLE_CPU_SCHED_DOMAIN_BALANCE */
 
+struct sched_domain;
+extern unsigned long arch_scale_freq_capacity(struct sched_domain *sd, int cpu);
+DECLARE_PER_CPU(atomic_long_t, cpu_freq_capacity);
+
 #else
 
 static inline void init_cpu_topology(void) { }

@@ -365,7 +365,12 @@ config SCHED_HMP_PRIO_FILTER_VAL
 
 config HMP_FAST_CPU_MASK
 	string "HMP scheduler fast CPU mask"
-	depends on SCHED_HMP
+	#
+	# As the kernel is built around the HMP-scheduler, we can't just deactivate
+	# it and hope it runs. arch_get_hmp_domains_for_smp() initializes the HMP-cpumasks which are
+	# required by many drives without creating unrequired HMP-domains
+	#
+	# depends on SCHED_HMP
 	help
           Leave empty to use device tree information.
 	  Specify the cpuids of the fast CPUs in the system as a list string,
@@ -373,7 +378,12 @@ config HMP_FAST_CPU_MASK
 
 config HMP_SLOW_CPU_MASK
 	string "HMP scheduler slow CPU mask"
-	depends on SCHED_HMP
+	#
+	# As the kernel is built around the HMP-scheduler, we can't just deactivate
+	# it and hope it runs. arch_get_hmp_domains_for_smp() initializes the HMP-cpumasks which are
+	# required by many drives without creating unrequired HMP-domains
+	#
+	# depends on SCHED_HMP
 	help
 	  Leave empty to use device tree information.
 	  Specify the cpuids of the slow CPUs in the system as a list string,
