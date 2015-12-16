@@ -30,6 +30,7 @@
 #include <linux/gfp.h>
 #include <linux/sched.h>
 #include <linux/sched/rt.h>
+#include <linux/slab.h>
 #include "cpupri.h"
 #include "sched.h"
 
@@ -249,6 +250,10 @@ int cpupri_init(struct cpupri *cp)
 			goto cleanup;
 	}
 
+	cp->cpu_to_pri = kcalloc(nr_cpu_ids, sizeof(int), GFP_KERNEL);
+	if (!cp->cpu_to_pri)
+		goto cleanup;
+
 	for_each_possible_cpu(i)
 		cp->cpu_to_pri[i] = CPUPRI_INVALID;
 	return 0;
@@ -267,6 +272,7 @@ void cpupri_cleanup(struct cpupri *cp)
 {
 	int i;
 
+	kfree(cp->cpu_to_pri);
 	for (i = 0; i < CPUPRI_NR_PRIORITIES; i++)
 		free_cpumask_var(cp->pri_to_cpu[i].mask);
 }
