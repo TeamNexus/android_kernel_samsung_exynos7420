@@ -2,6 +2,16 @@
 # Automatically generated file; DO NOT EDIT.
 # Linux/arm64 3.10.61 Kernel Configuration
 #
+<<<<<<< HEAD:arch/arm64/configs/lineageos_zeroltexx_defconfig
+=======
+#####                      #####
+################################
+#
+CONFIG_ARM64_ERRATUM_845719=y
+#
+################################
+
+>>>>>>> 35c4e6e6e6b1... [PATCH] arm64: errata: add workaround for cortex-a53 erratum #845719:arch/arm64/configs/exynos7420-zeroflte_defconfig
 CONFIG_ARM64=y
 CONFIG_64BIT=y
 CONFIG_ARCH_PHYS_ADDR_T_64BIT=y
@@ -4631,3 +4641,8 @@ CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE=y
 
 CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE=y
 CONFIG_TOUCHSCREEN_PREVENT_SLEEP=y
+
+#
+# Workarounds
+#
+CONFIG_ARM64_ERRATUM_845719=y
