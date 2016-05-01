@@ -875,6 +875,85 @@ static const struct file_operations proc_environ_operations = {
 	.release	= mem_release,
 };
 
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+int global_attach_task_by_pid(struct cgroup *cgrp, u64 pid, bool threadgroup);
+static inline int oom_score_adj_to_oom_adj(int oom_score_adj);
+static struct cgroup *fg_cgrp = NULL;
+static struct cgroup *bg_cgrp = NULL;
+struct cpuset_work_struct {
+	struct work_struct worker;
+	bool   is_fg;
+	int    pid;
+} cpuset_work_struct;
+struct cpuset_work_struct *cpuset_work = NULL;
+
+static void cpuset_attach(struct work_struct *work)
+{
+	struct cpuset_work_struct *cpuset_worker =
+		container_of(work, struct cpuset_work_struct, worker);
+
+	global_attach_task_by_pid(cpuset_worker->is_fg ? fg_cgrp : bg_cgrp,
+				  cpuset_worker->pid, false);
+}
+
+static void init_cpuset(void)
+{
+	cpuset_work = kmalloc(sizeof(*cpuset_work), GFP_KERNEL);
+	INIT_WORK(&cpuset_work->worker, cpuset_attach);
+}
+
+static inline void oom_adj_apply_to_cpusets(pid_t pid, int oom_score_adj)
+{
+	int oom_adj = oom_score_adj_to_oom_adj(oom_score_adj);
+	bool is_fg = oom_adj < CONFIG_FG_BG_THRESHOLD;
+
+	/* call once, base.c lacks __init */
+	if (cpuset_work == NULL)
+		init_cpuset();
+
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ_DEBUG
+	pr_info("cpuset: moving %d(oom_adj:%3d) to %s\n", pid, oom_adj,
+				is_fg ? "foreground" : "background");
+#endif
+
+	if (fg_cgrp == NULL || bg_cgrp == NULL) {
+		pr_err("cpuset: cgrp is NULL!\n");
+	} else {
+		cpuset_work->is_fg = is_fg;
+		cpuset_work->pid = pid;
+		schedule_work_on(0, &cpuset_work->worker);
+	}
+}
+
+void set_cgrp(struct cgroup *cgrp, bool fg)
+{
+	if (fg) {
+		if (fg_cgrp == NULL)
+			fg_cgrp = cgrp;
+	} else {
+		if (bg_cgrp == NULL)
+			bg_cgrp = cgrp;
+	}
+}
+#endif
+
+static inline int oom_score_adj_to_oom_adj(int oom_score_adj)
+{
+	int mult = 1, oom_adj;
+
+	if (oom_score_adj == OOM_SCORE_ADJ_MAX) {
+		oom_adj = OOM_ADJUST_MAX;
+	} else {
+		if (oom_score_adj < 0)
+			mult = -1;
+		oom_adj = roundup(mult * oom_score_adj *
+			-OOM_DISABLE, OOM_SCORE_ADJ_MAX) /
+			OOM_SCORE_ADJ_MAX * mult;
+	}
+
+	return oom_adj;
+}
+
 static ssize_t oom_adj_read(struct file *file, char __user *buf, size_t count,
 			    loff_t *ppos)
 {
@@ -887,11 +966,7 @@ static ssize_t oom_adj_read(struct file *file, char __user *buf, size_t count,
 	if (!task)
 		return -ESRCH;
 	if (lock_task_sighand(task, &flags)) {
-		if (task->signal->oom_score_adj == OOM_SCORE_ADJ_MAX)
-			oom_adj = OOM_ADJUST_MAX;
-		else
-			oom_adj = (task->signal->oom_score_adj * -OOM_DISABLE) /
-				  OOM_SCORE_ADJ_MAX;
+		oom_adj = oom_score_adj_to_oom_adj(task->signal->oom_score_adj);
 		unlock_task_sighand(task, &flags);
 	}
 	put_task_struct(task);
@@ -966,6 +1041,10 @@ static ssize_t oom_adj_write(struct file *file, const char __user *buf,
 		  task_pid_nr(task));
 
 	task->signal->oom_score_adj = oom_adj;
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+	/* int oom_adj is actually oom_score_adj at this point */
+	oom_adj_apply_to_cpusets(task->pid, oom_adj);
+#endif
 	trace_oom_score_adj_update(task);
 err_sighand:
 	unlock_task_sighand(task, &flags);
@@ -1083,6 +1162,9 @@ static ssize_t oom_score_adj_write(struct file *file, const char __user *buf,
 	task->signal->oom_score_adj = (short)oom_score_adj;
 	if (has_capability_noaudit(current, CAP_SYS_RESOURCE))
 		task->signal->oom_score_adj_min = (short)oom_score_adj;
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+	oom_adj_apply_to_cpusets(task->pid, oom_score_adj);
+#endif
 	trace_oom_score_adj_update(task);
 
 err_sighand:

@@ -858,6 +858,48 @@ config PROC_PID_CPUSET
 	depends on CPUSETS
 	default y
 
+config FG_BG_CPUSET_OOM_ADJ
+	bool "Set foreground/background cpuset from oom_adj/oom_score_adj"
+	depends on CPUSETS
+	default n
+	help
+	  This option will move processes automatically to foreground and
+	  background cpuset based on oom_adj/oom_score_adj changes.
+
+	  The main goals are the same as 'ENABLE_CPUSETS := true' on Android,
+	  reducing background overhead and overall power consumption.
+	  Especially useful if the system is big.LITTLE.
+
+	  This option requires the userspace to properly setup
+	  /dev/cpuset/foreground and /dev/cpuset/background.
+
+	  Say N if unsure.
+
+config FG_BG_THRESHOLD
+	int "oom_adj threshold"
+	depends on FG_BG_CPUSET_OOM_ADJ
+	default 5
+	help
+	  Set the oom_adj threshold for CONFIG_FG_BG_CPUSET_OOM_ADJ.
+
+	  Any processes having oom_adj higher or equal to this value will be
+	  moved to background cpuset.
+
+	  Following the same logic, if a process' oom_adj changes to a value
+	  lower than this will be moved to foreground cpuset.
+
+	  If this kernel is used with Android,
+	  platform_frameworks_base/core/java/android/app/ActivityManager.java
+	  will give you some ideas how to set correct value for this config.
+
+	  The default value 5 is equivalent to "PROCESS_STATE_TOP_SLEEPING" on
+	  Android.
+
+config FG_BG_CPUSET_OOM_ADJ_DEBUG
+	bool "Debug logging for CONFIG_FG_BG_CPUSET_OOM_ADJ"
+	depends on FG_BG_CPUSET_OOM_ADJ
+	default n
+
 config CGROUP_CPUACCT
 	bool "Simple CPU accounting cgroup subsystem"
 	help

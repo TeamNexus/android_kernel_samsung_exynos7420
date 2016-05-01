@@ -2238,6 +2238,13 @@ out_unlock_cgroup:
 	mutex_unlock(&cgroup_mutex);
 	return ret;
 }
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+/* publically available attach_task_by_pid */
+int global_attach_task_by_pid(struct cgroup *cgrp, u64 pid, bool threadgroup)
+{
+	return attach_task_by_pid(cgrp, pid, threadgroup);
+}
+#endif
 
 /**
  * cgroup_attach_task_all - attach task 'tsk' to all cgroups of task 'from'
@@ -4172,6 +4179,9 @@ static void offline_css(struct cgroup_subsys *ss, struct cgroup *cgrp)
 	cgrp->subsys[ss->subsys_id]->flags &= ~CSS_ONLINE;
 }
 
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+void set_cgrp(struct cgroup *cgrp, bool fg);
+#endif
 /*
  * cgroup_create - create a cgroup
  * @parent: cgroup that will be parent of the new cgroup
@@ -4189,6 +4199,10 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 	int err = 0;
 	struct cgroup_subsys *ss;
 	struct super_block *sb = root->sb;
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+	char *buffer, *path;
+	static short cgrp_set = 0;
+#endif
 
 	/* allocate the cgroup and its ID, 0 is reserved for the root */
 	cgrp = kzalloc(sizeof(*cgrp), GFP_KERNEL);
@@ -4297,6 +4311,25 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 
 	mutex_unlock(&cgroup_mutex);
 	mutex_unlock(&cgrp->dentry->d_inode->i_mutex);
+
+#ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
+	/* If we set fg/bg_cgrp earlier, mutexs are still locked */
+	if (cgrp_set != 2) {
+		buffer = kmalloc(25, GFP_KERNEL);
+		path = dentry_path_raw(cgrp->dentry, buffer, PAGE_SIZE);
+		pr_info("cgroup: %s: %s\n", __func__, path);
+		if (!strncmp(path, "/foreground", 25)) {
+			set_cgrp(cgrp, true);
+			cgrp_set++;
+			pr_info("%s: fg_cgrp set!\n", __func__);
+		} else if (!strncmp(path, "/background", 25)) {
+			set_cgrp(cgrp, false);
+			cgrp_set++;
+			pr_info("%s: bg_cgrp set!\n", __func__);
+		}
+		kfree(buffer); // No need to keep this on memory
+	}
+#endif
 
 	return 0;
 
