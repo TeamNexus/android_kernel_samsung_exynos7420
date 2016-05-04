@@ -880,9 +880,15 @@ int global_attach_task_by_pid(struct cgroup *cgrp, u64 pid, bool threadgroup);
 static inline int oom_score_adj_to_oom_adj(int oom_score_adj);
 static struct cgroup *fg_cgrp = NULL;
 static struct cgroup *bg_cgrp = NULL;
+static struct cgroup *inv_cgrp = NULL;
 struct cpuset_work_struct {
 	struct work_struct worker;
-	bool   is_fg;
+	/*
+	 * 0 : foreground
+	 * 1 : background
+	 * 2 : invisible
+	 */
+	int    cgrp_level;
 	int    pid;
 } cpuset_work_struct;
 struct cpuset_work_struct *cpuset_work = NULL;
@@ -894,8 +900,20 @@ static void cpuset_attach(struct work_struct *work)
 		container_of(work, struct cpuset_work_struct, worker);
 
 	mutex_lock(&cpuset_work_lock);
-	global_attach_task_by_pid(cpuset_worker->is_fg ? fg_cgrp : bg_cgrp,
-				  cpuset_worker->pid, false);
+	switch (cpuset_worker->cgrp_level) {
+	case 0:
+		global_attach_task_by_pid(fg_cgrp, cpuset_worker->pid, false);
+		break;
+	case 1:
+		global_attach_task_by_pid(bg_cgrp, cpuset_worker->pid, false);
+		break;
+	case 2:
+		global_attach_task_by_pid(inv_cgrp, cpuset_worker->pid, false);
+		break;
+	default:
+		/* unimplemented */
+		break;
+	}
 	mutex_unlock(&cpuset_work_lock);
 }
 
@@ -911,31 +929,63 @@ rootfs_initcall(init_cpuset);
 static inline void oom_adj_apply_to_cpusets(pid_t pid, int oom_score_adj)
 {
 	int oom_adj = oom_score_adj_to_oom_adj(oom_score_adj);
-	bool is_fg = oom_adj < CONFIG_FG_BG_THRESHOLD;
+	int cgrp_level = 0;
+
+	/* hardcode invisible oom_adj to be 1 for now
+	   user is using invisible mode if inv_cgrp is not NULL */
+	if (inv_cgrp != NULL && oom_adj > 1)
+		cgrp_level = 2;
+	if (oom_adj >= CONFIG_FG_BG_THRESHOLD)
+		cgrp_level = 1;
 
 #ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ_DEBUG
-	pr_info("cpuset: moving %d(oom_adj:%3d) to %s\n", pid, oom_adj,
-				is_fg ? "foreground" : "background");
+	switch (cgrp_level) {
+	case 0:
+		pr_info("cpuset: moving %d(oom_adj:%3d) to the foreground\n",
+			pid, oom_adj);
+		break;
+	case 1:
+		pr_info("cpuset: moving %d(oom_adj:%3d) to the background\n",
+			pid, oom_adj);
+		break;
+	case 2:
+		pr_info("cpuset: moving %d(oom_adj:%3d) to the invisible\n",
+			pid, oom_adj);
+		break;
+	default:
+		/* unimplemented */
+		break;
+	}
 #endif
 
 	if (fg_cgrp == NULL || bg_cgrp == NULL) {
 		/* this would also catch init_cpuset not being called yet */
 		pr_err("cpuset: cgrp is NULL!\n");
 	} else {
-		cpuset_work->is_fg = is_fg;
+		cpuset_work->cgrp_level = cgrp_level;
 		cpuset_work->pid = pid;
 		schedule_work_on(0, &cpuset_work->worker);
 	}
 }
 
-void set_cgrp(struct cgroup *cgrp, bool fg)
+void set_cgrp(struct cgroup *cgrp, int cgrp_level)
 {
-	if (fg) {
+	switch (cgrp_level) {
+	case 0:
 		if (fg_cgrp == NULL)
 			fg_cgrp = cgrp;
-	} else {
+		break;
+	case 1:
 		if (bg_cgrp == NULL)
 			bg_cgrp = cgrp;
+		break;
+	case 2:
+		if (inv_cgrp == NULL)
+			inv_cgrp = cgrp;
+		break;
+	default:
+		/* unimplemented */
+		break;
 	}
 }
 #endif
