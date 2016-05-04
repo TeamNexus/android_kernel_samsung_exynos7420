@@ -886,14 +886,17 @@ struct cpuset_work_struct {
 	int    pid;
 } cpuset_work_struct;
 struct cpuset_work_struct *cpuset_work = NULL;
+static DEFINE_MUTEX(cpuset_work_lock);
 
 static void cpuset_attach(struct work_struct *work)
 {
 	struct cpuset_work_struct *cpuset_worker =
 		container_of(work, struct cpuset_work_struct, worker);
 
+	mutex_lock(&cpuset_work_lock);
 	global_attach_task_by_pid(cpuset_worker->is_fg ? fg_cgrp : bg_cgrp,
 				  cpuset_worker->pid, false);
+	mutex_unlock(&cpuset_work_lock);
 }
 
 static int __init init_cpuset(void)
