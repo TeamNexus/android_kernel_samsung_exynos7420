@@ -4315,14 +4315,14 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 #ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
 	/* If we set fg/bg_cgrp earlier, mutexs are still locked */
 	if (cgrp_set != 2) {
-		buffer = kmalloc(25, GFP_KERNEL);
+		buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
 		path = dentry_path_raw(cgrp->dentry, buffer, PAGE_SIZE);
 		pr_info("cgroup: %s: %s\n", __func__, path);
-		if (!strncmp(path, "/foreground", 25)) {
+		if (!strncmp(path, "/foreground", PAGE_SIZE - 1)) {
 			set_cgrp(cgrp, true);
 			cgrp_set++;
 			pr_info("%s: fg_cgrp set!\n", __func__);
-		} else if (!strncmp(path, "/background", 25)) {
+		} else if (!strncmp(path, "/background", PAGE_SIZE - 1)) {
 			set_cgrp(cgrp, false);
 			cgrp_set++;
 			pr_info("%s: bg_cgrp set!\n", __func__);
