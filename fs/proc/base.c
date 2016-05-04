@@ -896,20 +896,19 @@ static void cpuset_attach(struct work_struct *work)
 				  cpuset_worker->pid, false);
 }
 
-static void init_cpuset(void)
+static int __init init_cpuset(void)
 {
 	cpuset_work = kmalloc(sizeof(*cpuset_work), GFP_KERNEL);
 	INIT_WORK(&cpuset_work->worker, cpuset_attach);
+
+	return 0;
 }
+rootfs_initcall(init_cpuset);
 
 static inline void oom_adj_apply_to_cpusets(pid_t pid, int oom_score_adj)
 {
 	int oom_adj = oom_score_adj_to_oom_adj(oom_score_adj);
 	bool is_fg = oom_adj < CONFIG_FG_BG_THRESHOLD;
-
-	/* call once, base.c lacks __init */
-	if (cpuset_work == NULL)
-		init_cpuset();
 
 #ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ_DEBUG
 	pr_info("cpuset: moving %d(oom_adj:%3d) to %s\n", pid, oom_adj,
@@ -917,6 +916,7 @@ static inline void oom_adj_apply_to_cpusets(pid_t pid, int oom_score_adj)
 #endif
 
 	if (fg_cgrp == NULL || bg_cgrp == NULL) {
+		/* this would also catch init_cpuset not being called yet */
 		pr_err("cpuset: cgrp is NULL!\n");
 	} else {
 		cpuset_work->is_fg = is_fg;
