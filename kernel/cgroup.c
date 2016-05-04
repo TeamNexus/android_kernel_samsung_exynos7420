@@ -4180,7 +4180,7 @@ static void offline_css(struct cgroup_subsys *ss, struct cgroup *cgrp)
 }
 
 #ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
-void set_cgrp(struct cgroup *cgrp, bool fg);
+void set_cgrp(struct cgroup *cgrp, int cgrp_level);
 #endif
 /*
  * cgroup_create - create a cgroup
@@ -4201,7 +4201,6 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 	struct super_block *sb = root->sb;
 #ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
 	char *buffer, *path;
-	static short cgrp_set = 0;
 #endif
 
 	/* allocate the cgroup and its ID, 0 is reserved for the root */
@@ -4313,22 +4312,21 @@ static long cgroup_create(struct cgroup *parent, struct dentry *dentry,
 	mutex_unlock(&cgrp->dentry->d_inode->i_mutex);
 
 #ifdef CONFIG_FG_BG_CPUSET_OOM_ADJ
-	/* If we set fg/bg_cgrp earlier, mutexs are still locked */
-	if (cgrp_set != 2) {
-		buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-		path = dentry_path_raw(cgrp->dentry, buffer, PAGE_SIZE);
-		pr_info("cgroup: %s: %s\n", __func__, path);
-		if (!strncmp(path, "/foreground", PAGE_SIZE - 1)) {
-			set_cgrp(cgrp, true);
-			cgrp_set++;
-			pr_info("%s: fg_cgrp set!\n", __func__);
-		} else if (!strncmp(path, "/background", PAGE_SIZE - 1)) {
-			set_cgrp(cgrp, false);
-			cgrp_set++;
-			pr_info("%s: bg_cgrp set!\n", __func__);
-		}
-		kfree(buffer); // No need to keep this on memory
+	/* If we set cgrps earlier, mutexs are still locked */
+	buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	path = dentry_path_raw(cgrp->dentry, buffer, PAGE_SIZE);
+	pr_info("cgroup: %s: %s\n", __func__, path);
+	if (!strncmp(path, "/foreground", PAGE_SIZE - 1)) {
+		set_cgrp(cgrp, 0);
+		pr_info("%s: fg_cgrp set!\n", __func__);
+	} else if (!strncmp(path, "/background", PAGE_SIZE - 1)) {
+		set_cgrp(cgrp, 1);
+		pr_info("%s: bg_cgrp set!\n", __func__);
+	} else if (!strncmp(path, "/invisible", PAGE_SIZE - 1)) {
+		set_cgrp(cgrp, 2);
+		pr_info("%s: inv_cgrp set!\n", __func__);
 	}
+	kfree(buffer); // No need to keep this on memory
 #endif
 
 	return 0;
