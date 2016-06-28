@@ -300,15 +300,15 @@ static int call_undef_hook(struct pt_regs *regs, unsigned int instr)
 	return fn ? fn(regs, instr) : 1;
 }
 
-asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
+static void force_signal_inject(int signal, int code, struct pt_regs *regs,
+				unsigned long address)
 {
 	u32 instr;
 	siginfo_t info;
 	void __user *pc = (void __user *)instruction_pointer(regs);
+	const char *desc;
 
 	/* check for AArch32 breakpoint instructions */
-	if (!aarch32_break_handler(regs))
-		return;
 	if (user_mode(regs)) {
 		if (compat_thumb_mode(regs)) {
 			if (get_user(instr, (u16 __user *)pc))
@@ -328,23 +328,61 @@ asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
 		instr = *((u32 *)pc);
 	}
 
-	if (call_undef_hook(regs, instr) == 0)
-		return;
-
-die_sig:
-	if (show_unhandled_signals && unhandled_signal(current, SIGILL) &&
-	    printk_ratelimit()) {
-		pr_info("%s[%d]: undefined instruction: pc=%p\n",
-			current->comm, task_pid_nr(current), pc);
-		dump_instr(KERN_INFO, regs);
+	switch (signal) {
+	case SIGILL:
+		desc = "undefined instruction";
+		break;
+	case SIGSEGV:
+		desc = "illegal memory access";
+		break;
+	default:
+		desc = "bad mode";
+		break;
 	}
 
-	info.si_signo = SIGILL;
+die_sig:
+	if (unhandled_signal(current, signal) &&
+	    show_unhandled_signals_ratelimited()) {
+		pr_info("%s[%d]: %s: pc=%p\n",
+			current->comm, task_pid_nr(current), desc, pc);
+ 		dump_instr(KERN_INFO, regs);
+ 	}
+
+	info.si_signo = signal;
 	info.si_errno = 0;
-	info.si_code  = ILL_ILLOPC;
+	info.si_code  = code;
 	info.si_addr  = pc;
 
-	arm64_notify_die("Oops - undefined instruction", regs, &info, 0);
+	arm64_notify_die(desc, regs, &info, 0);
+}
+
+/*
+ * Set up process info to signal segmentation fault - called on access error.
+ */
+void arm64_notify_segfault(struct pt_regs *regs, unsigned long addr)
+{
+	int code;
+
+	down_read(&current->mm->mmap_sem);
+	if (find_vma(current->mm, addr) == NULL)
+		code = SEGV_MAPERR;
+	else
+		code = SEGV_ACCERR;
+	up_read(&current->mm->mmap_sem);
+
+	force_signal_inject(SIGSEGV, code, regs, addr);
+}
+
+asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
+{
+	/* check for AArch32 breakpoint instructions */
+	if (!aarch32_break_handler(regs))
+		return;
+
+	if (call_undef_hook(regs) == 0)
+		return;
+
+	force_signal_inject(SIGILL, ILL_ILLOPC, regs, 0);
 }
 
 long compat_arm_syscall(struct pt_regs *regs);

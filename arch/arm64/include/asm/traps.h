@@ -30,6 +30,9 @@ struct undef_hook {
 };
 
 void register_undef_hook(struct undef_hook *hook);
+void unregister_undef_hook(struct undef_hook *hook);
+
+void arm64_notify_segfault(struct pt_regs *regs, unsigned long addr);
 
 static inline int in_exception_text(unsigned long ptr)
 {
