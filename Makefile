@@ -401,9 +401,11 @@ KBUILD_CFLAGS := \
 # Flags
 KBUILD_CFLAGS += \
 	-fdiagnostics-show-option \
+	-ffast-math \
 	-fno-common \
 	-fno-delete-null-pointer-checks \
 	-fno-strict-aliasing \
+	-ftree-vectorize \
 	-std=gnu89 \
 	-Ofast
 
