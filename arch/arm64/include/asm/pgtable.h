@@ -91,12 +91,13 @@ extern void __pgd_error(const char *file, int line, unsigned long val);
 #define PAGE_COPY_EXEC		__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN)
 #define PAGE_READONLY		__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN | PTE_UXN)
 #define PAGE_READONLY_EXEC	__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN)
+#define PAGE_EXECONLY __pgprot(_PAGE_DEFAULT | PTE_NG | PTE_PXN)
 
 #define __P000  PAGE_NONE
 #define __P001  PAGE_READONLY
 #define __P010  PAGE_COPY
 #define __P011  PAGE_COPY
-#define __P100  PAGE_READONLY_EXEC
+#define __P100  PAGE_EXECONLY
 #define __P101  PAGE_READONLY_EXEC
 #define __P110  PAGE_COPY_EXEC
 #define __P111  PAGE_COPY_EXEC
@@ -105,7 +106,7 @@ extern void __pgd_error(const char *file, int line, unsigned long val);
 #define __S001  PAGE_READONLY
 #define __S010  PAGE_SHARED
 #define __S011  PAGE_SHARED
-#define __S100  PAGE_READONLY_EXEC
+#define __S100  PAGE_EXECONLY
 #define __S101  PAGE_READONLY_EXEC
 #define __S110  PAGE_SHARED_EXEC
 #define __S111  PAGE_SHARED_EXEC
@@ -140,9 +141,12 @@ extern struct page *empty_zero_page;
 #define pte_special(pte)	(!!(pte_val(pte) & PTE_SPECIAL))
 #define pte_write(pte)		(!!(pte_val(pte) & PTE_WRITE))
 #define pte_exec(pte)		(!(pte_val(pte) & PTE_UXN))
+#define pte_ng(pte) 		(!!(pte_val(pte) & PTE_NG))
 
 #define pte_valid_user(pte) \
 	((pte_val(pte) & (PTE_VALID | PTE_USER)) == (PTE_VALID | PTE_USER))
+#define pte_valid_global(pte) \
+	((pte_val(pte) & (PTE_VALID | PTE_NG)) == PTE_VALID)
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
@@ -218,7 +222,7 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
 			      pte_t *ptep, pte_t pte)
 {
 	if (pte_valid_user(pte)) {
-		if (!pte_special(pte) && pte_exec(pte))
+		if (pte_ng(pte) && pte_exec(pte) && !pte_special(pte))
 			__sync_icache_dcache(pte, addr);
 		if (pte_dirty(pte) && pte_write(pte))
 			pte_val(pte) &= ~PTE_RDONLY;
