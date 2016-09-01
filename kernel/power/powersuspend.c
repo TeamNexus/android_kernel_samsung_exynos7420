@@ -4,6 +4,7 @@
  * Copyright (C) 2013 Paul Reioux
  *
  * Modified by Jean-Pierre Rasquin <yank555.lu@gmail.com>
+ *             Park Ju Hyung <qkrwngud825@gmail.com>
  *
  *  v1.1 - make powersuspend not depend on a userspace initiator anymore,
  *         but use a hook in autosleep instead.
@@ -20,6 +21,8 @@
  *
  *  v1.7 - do only run state change if change actually requests a new state
  *
+ *  v1.8 - add a fb mode, using Linux FB API
+ *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -35,9 +38,10 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/workqueue.h>
+#include <linux/fb.h>
 
 #define MAJOR_VERSION	1
-#define MINOR_VERSION	7
+#define MINOR_VERSION	8
 
 struct workqueue_struct *suspend_work_queue;
 
@@ -183,6 +187,35 @@ void set_power_suspend_state_panel_hook(int new_state)
 
 EXPORT_SYMBOL(set_power_suspend_state_panel_hook);
 
+static int power_suspend_fb_notifier(struct notifier_block *self,
+				unsigned long event, void *data)
+{
+	struct fb_event *evdata = (struct fb_event *)data;
+
+	if (mode != POWER_SUSPEND_FB)
+		goto ret;
+
+	if ((event == FB_EVENT_BLANK) && evdata && evdata->data) {
+		int blank = *(int *)evdata->data;
+
+		if (blank == FB_BLANK_POWERDOWN) {
+			set_power_suspend_state(1);
+			return NOTIFY_OK;
+		} else if (blank == FB_BLANK_UNBLANK) {
+			set_power_suspend_state(0);
+			return NOTIFY_OK;
+		}
+	}
+
+ret:
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block power_suspend_fb_notifier_block = {
+	.notifier_call = power_suspend_fb_notifier,
+	.priority = -1,
+};
+
 // ------------------------------------------ sysfs interface ------------------------------------------
 
 static ssize_t power_suspend_state_show(struct kobject *kobj,
@@ -230,13 +263,24 @@ static ssize_t power_suspend_mode_store(struct kobject *kobj,
 	sscanf(buf, "%d\n", &data);
 
 	switch (data) {
+		case POWER_SUSPEND_FB:
+			if (mode != POWER_SUSPEND_FB) {
+				mode = data;
+				fb_register_client(&power_suspend_fb_notifier_block);
+			}
+			break;
 		case POWER_SUSPEND_PANEL:
-		case POWER_SUSPEND_USERSPACE:	mode = data;
-						return count;
+		case POWER_SUSPEND_USERSPACE:
+			if (mode == POWER_SUSPEND_FB) {
+				fb_unregister_client(&power_suspend_fb_notifier_block);
+			}
+			mode = data;
+			break;
 		default:
 			return -EINVAL;
 	}
-	
+
+	return count;
 }
 
 static struct kobj_attribute power_suspend_mode_attribute =
@@ -299,7 +343,9 @@ static int __init power_suspend_init(void)
 	}
 
 //	mode = POWER_SUSPEND_USERSPACE;	// Yank555.lu : Default to userspace mode
-	mode = POWER_SUSPEND_PANEL;	// Yank555.lu : Default to display panel mode
+//	mode = POWER_SUSPEND_PANEL;	// Yank555.lu : Default to display panel mode
+	mode = POWER_SUSPEND_FB;	// arter97 : Default to display panel mode
+	fb_register_client(&power_suspend_fb_notifier_block);
 
 	return 0;
 }
