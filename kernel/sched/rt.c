@@ -1208,9 +1208,12 @@ static int find_lowest_rq(struct task_struct *task);
 bool
 task_may_not_preempt(struct task_struct *task, int cpu)
 {
+	__u32 softirqs = per_cpu(active_softirqs, cpu) |
+			 __IRQ_STAT(cpu, __softirq_pending);
 	struct task_struct *cpu_ksoftirqd = per_cpu(ksoftirqd, cpu);
-	return (task_thread_info(task)->preempt_count & SOFTIRQ_MASK) ||
-	       task == cpu_ksoftirqd;
+	return ((softirqs & LONG_SOFTIRQ_MASK) &&
+		(task == cpu_ksoftirqd ||
+		 task_thread_info(task)->preempt_count & SOFTIRQ_MASK));
 }
 
 static int
