@@ -7502,6 +7502,7 @@ void sched_move_task(struct task_struct *tsk)
 	struct rq *rq;
 
 	rq = task_rq_lock(tsk, &flags);
+	update_rq_clock(rq);
 
 	running = task_current(rq, tsk);
 	on_rq = tsk->on_rq;
