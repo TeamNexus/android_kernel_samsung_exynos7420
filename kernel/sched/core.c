@@ -4878,6 +4878,7 @@ int set_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *new_mask)
 	int ret = 0;
 
 	rq = task_rq_lock(p, &flags);
+	update_rq_clock(rq);
 
 	if (cpumask_equal(&p->cpus_allowed, new_mask))
 		goto out;
