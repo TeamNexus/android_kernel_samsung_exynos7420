@@ -2495,14 +2495,6 @@ static void max77843_charger_shutdown(struct device *dev)
 	max77843_write_reg(charger->i2c,
 		MAX77843_CHG_REG_CNFG_12, reg_data);
 
-	if (charger->pdata->chg_irq)
-		free_irq(charger->pdata->chg_irq, charger);
-
-	free_irq(charger->wc_w_irq, charger);
-	free_irq(charger->irq_chgin, charger);
-	free_irq(charger->irq_bypass, charger);
-	free_irq(charger->irq_batp, charger);
-
 	pr_info("func:%s \n", __func__);
 }
 
