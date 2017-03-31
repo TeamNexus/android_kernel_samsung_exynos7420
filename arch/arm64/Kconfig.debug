@@ -77,4 +77,8 @@ config SEC_RESTRICT_ROOTING_LOG
 	   Say Y here if you want to see result of restricting SETUID or FORK. It will
 	   be displayed by kernel error log. Saying N will not be displayed anything.
 
+config ARM64_RELOC_TEST
+	depends on m
+	tristate "Relocation testing module"
+
 endmenu
