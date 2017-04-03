@@ -42,6 +42,7 @@ arm64-obj-$(CONFIG_ARMV8_DEPRECATED)	+= armv8_deprecated.o
 # from upstream
 arm64-obj-$(CONFIG_ARM64_RELOC_TEST) += arm64-reloc-test.o
 arm64-reloc-test-y := reloc_test_core.o reloc_test_syms.o
+arm64-obj-$(CONFIG_CRASH_DUMP)		+= crash_dump.o
 
 obj-$(CONFIG_SWP_EMULATE)	+= swp_emulate.o
 
