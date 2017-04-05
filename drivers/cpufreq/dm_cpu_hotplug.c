@@ -82,7 +82,6 @@ static bool cluster0_core_in_by_nr_running = false;
 static unsigned int cluster1_min_freq;
 static unsigned int cluster0_max_freq;
 #endif
-int disable_dm_hotplug_before_suspend = 0;
 int nr_sleep_prepare_cpus = CONFIG_EXYNOS5_DYNAMIC_CPU_HOTPLUG_SLEEP_PREPARE;
 
 enum hotplug_cmd {
@@ -116,6 +115,7 @@ static struct workqueue_struct *thread_manage_wq;
 #endif
 
 static int dm_hotplug_disable = 0;
+int disable_dm_hotplug_before_suspend = 0;
 
 static int exynos_dm_hotplug_disabled(void)
 {
@@ -130,18 +130,18 @@ static void exynos_dm_hotplug_enable(void)
 		mutex_unlock(&dm_hotplug_lock);
 		return;
 	}
-	dm_hotplug_disable--;
+	dm_hotplug_disable = 0;
 	if (!in_suspend_prepared)
-		disable_dm_hotplug_before_suspend--;
+		disable_dm_hotplug_before_suspend = 0;
 	mutex_unlock(&dm_hotplug_lock);
 }
 
 static void exynos_dm_hotplug_disable(void)
 {
 	mutex_lock(&dm_hotplug_lock);
-	dm_hotplug_disable++;
+	dm_hotplug_disable = 1;
 	if (!in_suspend_prepared)
-		disable_dm_hotplug_before_suspend++;
+		disable_dm_hotplug_before_suspend = 1;
 	mutex_unlock(&dm_hotplug_lock);
 }
 
