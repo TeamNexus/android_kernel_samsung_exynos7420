@@ -29,7 +29,7 @@
 #if ANDROID_VERSION < 70000			/* M OS*/
 #define SSP_FIRMWARE_REVISION_BCM	16110400
 #else								/* N OS*/
-#define SSP_FIRMWARE_REVISION_BCM	17012500
+#define SSP_FIRMWARE_REVISION_BCM	17020600
 #endif	
 #endif
 unsigned int get_module_rev(struct ssp_data *data)

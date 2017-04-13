@@ -108,7 +108,7 @@
 		supports-highspeed;
 		enable-cache-control;
 		use-enable-shift;
-		qos_int_level = <468000>;
+		qos_int_level = <400000>;
 		fifo-depth = <0x40>;
 		card-detect-delay = <200>;
 		samsung,dw-mshc-ciu-div = <3>;
@@ -143,7 +143,7 @@
 		clock-gate;
 		fifo-depth = <0x40>;
 		card-detect-delay = <200>;
-		qos_int_level = <468000>;
+		qos_int_level = <400000>;
 		bypass-for-allpass;
 		fix-fmp-size-mismatch;
 		not-allow-single-dma;

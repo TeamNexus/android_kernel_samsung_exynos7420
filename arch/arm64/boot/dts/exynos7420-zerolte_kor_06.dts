@@ -11,7 +11,7 @@
 
 /dts-v1/;
 #include "exynos7420-zero_common.dtsi"
-#include "exynos7420-zerolte_battery_06.dtsi"
+#include "exynos7420-zerolte_kor_battery_06.dtsi"
 #include "exynos7420-zerolte_gpio_kor_06.dtsi"
 #include "exynos7420-zerolte_modem-shannon_kor.dtsi"
 #include "exynos7420-zerolte_kor-tdmb-00.dtsi"
@@ -71,7 +71,7 @@
 				752 114
 				1257 217
 			>;
-
+			wlf,hs-mic = <3>;
 			wlf,micd-configs = <
 				0x0 2 0
 			>;
@@ -776,7 +776,7 @@
 			1912>;
 	};
 
-	sec_thermistor@1 {
+	sec_thermistor@2 {
 		status = "okay";
 
 		adc_array = <202 212 223 234 244 255 265 276 287 297

@@ -13,6 +13,9 @@
 #include "exynos7420-zero_common.dtsi"
 #include "exynos7420-zeroflte_battery_02.dtsi"
 #include "exynos7420-zeroflte_gpio_03.dtsi"
+#include "exynos7420-zerolte_modem-shannon_ds.dtsi"
+#include "exynos7420-zerolte_fingerprint-sensor_00.dtsi"
+#include "exynos7420-zerolte_mst.dtsi"
 #include "exynos7420-zeroflte_motor.dtsi"
 #include "exynos7420-zeroflte_svcled.dtsi"
 

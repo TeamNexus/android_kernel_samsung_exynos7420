@@ -72,7 +72,7 @@
 				752 114
 				1257 217
 			>;
-
+			wlf,hs-mic = <3>;
 			wlf,micd-configs = <
 				0x0 2 0
 			>;
@@ -775,7 +775,7 @@
 			1934>;
 	};
 
-	sec_thermistor@1 {
+	sec_thermistor@2 {
 		status = "okay";
 
 		adc_array = <290 297 302 307 312 318 324 330 336 342
