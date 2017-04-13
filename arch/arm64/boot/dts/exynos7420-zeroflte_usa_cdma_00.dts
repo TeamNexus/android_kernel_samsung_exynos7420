@@ -17,6 +17,7 @@
 #include "exynos7420-zerolte_fingerprint-sensor_00.dtsi"
 #include "exynos7420-zerolte_mst.dtsi"
 #include "exynos7420-zeroflte_svcled.dtsi"
+#include "exynos7420-zeroflte_motor.dtsi"
 
 / {
 	model = "Samsung ZERO-F LTE CDMA rev00 board based on Exynos7420(EVT1), mPOP";
@@ -71,7 +72,7 @@
 				752 114
 				1257 217
 			>;
-
+			wlf,hs-mic = <3>;
 			wlf,micd-configs = <
 				0x0 2 0
 			>;
@@ -700,7 +701,7 @@
 				_ldo3_reg: s2mpb02-ldo3 {
 					regulator-name = "VDDD_1.2V_CAM";
 					regulator-min-microvolt = <1000000>;
-					regulator-max-microvolt = <1050000>;
+					regulator-max-microvolt = <1200000>;
 				};
 
 				_ldo4_reg: s2mpb02-ldo4 {
@@ -748,7 +749,7 @@
 				_ldo11_reg: s2mpb02-ldo11 {
 					regulator-name = "VDDA_2.9V_CAM";
 					regulator-min-microvolt = <2800000>;
-					regulator-max-microvolt = <2900000>;
+					regulator-max-microvolt = <2950000>;
 				};
 
 				_ldo12_reg: s2mpb02-ldo12 {
@@ -830,7 +831,7 @@
 			1934>;
 	};
 
-	sec_thermistor@1 {
+	sec_thermistor@2 {
 		status = "okay";
 
 		adc_array = <290 297 302 307 312 318 324 330 336 342
@@ -965,7 +966,7 @@
 	s6e3ha0_wqhd: s6e3ha0_wqhd_panel {
 		mode = <2>;
 		resolution = <1440 2560>;
-		size = <70 121>;
+		size = <63 112>;
 		timing,refresh = <60>;
 		timing,h-porch = <1 1 1>;
 		timing,v-porch = <15 1 1>;
@@ -974,9 +975,5 @@
 		mic = <1>;
 		mic_ver = <2>;
 		type_of_ddi = <0>;
-	};
-	haptic {
-		haptic,duty = <33670>;
-		haptic,period = <33510>;
 	};
 };

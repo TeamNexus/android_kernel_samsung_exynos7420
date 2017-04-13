@@ -71,7 +71,7 @@
 				752 114
 				1257 217
 			>;
-
+			wlf,hs-mic = <3>;
 			wlf,micd-configs = <
 				0x0 2 0
 			>;
@@ -611,7 +611,7 @@
 				_ldo3_reg: s2mpb02-ldo3 {
 					regulator-name = "VDDD_1.2V_CAM";
 					regulator-min-microvolt = <1000000>;
-					regulator-max-microvolt = <1050000>;
+					regulator-max-microvolt = <1200000>;
 				};
 
 				_ldo4_reg: s2mpb02-ldo4 {
@@ -659,7 +659,7 @@
 				_ldo11_reg: s2mpb02-ldo11 {
 					regulator-name = "VDDA_2.9V_CAM";
 					regulator-min-microvolt = <2800000>;
-					regulator-max-microvolt = <2900000>;
+					regulator-max-microvolt = <2950000>;
 				};
 
 				_ldo12_reg: s2mpb02-ldo12 {
@@ -773,7 +773,7 @@
 	s6e3hf2_wqhd: s6e3hf2_wqhd_panel {
 		mode = <2>;
 		resolution = <1440 2560>;
-		size = <70 121>;
+		size = <63 112>;
 		timing,refresh = <60>;
 		timing,h-porch = <1 1 1>;
 		timing,v-porch = <15 1 1>;

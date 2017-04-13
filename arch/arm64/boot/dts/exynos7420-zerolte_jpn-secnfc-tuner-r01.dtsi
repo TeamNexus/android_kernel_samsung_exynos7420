@@ -123,6 +123,14 @@
 			samsung,pin-drv = <3>;		/* High */
 		};
 
+		felica_nfc_pon_lpm: lpm
+		{
+			samsung,pins = "gpa2-6";
+                        samsung,pin-function = <0>;     /* Output */
+                        samsung,pin-pud = <0>;          /* NONE*/
+                        samsung,pin-drv = <0>;          /* High */
+		};
+
 		felica_nfc_int: int	/* IRQ PIN */
 		{
 			samsung,pins = "gpa0-6";
@@ -155,6 +163,23 @@
 		sec_nfc_rfs_lpm: rfs_lpm
 		{
 			samsung,pins = "gpf1-5";
+			samsung,pin-function = <0>;
+			samsung,pin-pud = <0>;
+			samsung,pin-drv = <0>;
+		};
+		sec_nfc_ldo: active
+		{
+			samsung,pins = "gpf5-4";
+			samsung,pin-function = <1>;
+			samsung,pin-pud = <0>;
+			samsung,pin-drv = <0>;
+			samsung,pin-val = <1>;
+			samsung,pin-con-pdn = <3>;
+			samsung,pin-pud-pdn = <0>;
+		};
+		sec_nfc_ldo_lpm: lpm
+		{
+			samsung,pins = "gpf5-4";
 			samsung,pin-function = <0>;
 			samsung,pin-pud = <0>;
 			samsung,pin-drv = <0>;
@@ -197,9 +222,9 @@
 		sec-nfc,i2c_1p8 = "VDD20_1P8_AP";
 		sec-nfc,regulator_tvdd = "vdd_tx_2p8";
 		pinctrl-names = "sec_nfc_active", "sec_nfc_suspend", "sec_nfc_lpm"; /*, "sec_nfc_uart_suspend", "sec_nfc_uart_active" */
-		pinctrl-0 = <&felica_nfc_pon &felica_nfc_int &uart0_bus>;
-		pinctrl-1 = <&felica_nfc_pon &felica_nfc_int &uart0_suspend>;
-		pinctrl-2 = <&felica_nfc_pon &felica_nfc_int &uart0_lpm &sec_nfc_rfs_lpm>;
+		pinctrl-0 = <&felica_nfc_pon &felica_nfc_int &uart0_bus &sec_nfc_ldo>;
+		pinctrl-1 = <&felica_nfc_pon &felica_nfc_int &uart0_suspend &sec_nfc_ldo>;
+		pinctrl-2 = <&felica_nfc_pon_lpm &felica_nfc_int &uart0_lpm &sec_nfc_rfs_lpm &sec_nfc_ldo_lpm>;
 		/*
 		pinctrl-2 = <&felica_nfc_uart_suspend>;
 		pinctrl-3 = <&felica_nfc_uart_active>;

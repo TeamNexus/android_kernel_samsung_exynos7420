@@ -182,7 +182,6 @@
 
 		PIN_IN(gpf5-2, DOWN, LV1);	/* NC */
 		PIN_IN(gpf5-3, DOWN, LV1);	/* NC */
-		PIN_OUT_SET(gpf5-4, 1, LV1);	/* FELICA_LDO_EN */
 		PIN_IN(gpf5-5, DOWN, LV1);	/* ISDBT_INT */
 
 		PIN_IN(gpg1-2, DOWN, LV1);	/* NC */
@@ -237,7 +236,6 @@
 		PIN_SLP(gpf5-1, PREV, NONE);	/* AP_CP_DUMP_NOTI_n */
 		PIN_SLP(gpf5-2, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpf5-3, INPUT, DOWN);	/* NC */
-		PIN_SLP(gpf5-4, OUT1, NONE);	/* FELICA_LDO_EN */
 		PIN_SLP(gpf5-5, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpf5-6, PREV, NONE);	/* WCHG_CTL */
 		PIN_SLP(gpf5-7, PREV, NONE);	/* CODEC_LDO_EN */

@@ -183,7 +183,6 @@
 		PIN_IN(gpf4-7, DOWN, LV1);	/* NC */
 
 		PIN_IN(gpf5-3, DOWN, LV1);	/* NC */
-		PIN_OUT_SET(gpf5-4, 1, LV1);	/* FELICA_LDO_EN */
 		PIN_IN(gpf5-5, DOWN, LV1);	/* ISDBT_INT */
 
 		PIN_IN(gpf5-7, DOWN, LV1);	/* NC */
@@ -242,7 +241,6 @@
 		PIN_SLP(gpf5-1, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpf5-2, PREV, NONE);	/* FACTORY DISCHARGING */
 		PIN_SLP(gpf5-3, INPUT, DOWN);	/* NC */
-		PIN_SLP(gpf5-4, OUT1, NONE);	/* FELICA_LDO_EN */
 		PIN_SLP(gpf5-5, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpf5-6, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpf5-7, INPUT, DOWN);	/* NC */
