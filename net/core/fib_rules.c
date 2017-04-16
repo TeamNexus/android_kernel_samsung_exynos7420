@@ -645,15 +645,25 @@ static int dump_rules(struct sk_buff *skb, struct netlink_callback *cb,
 {
 	int idx = 0;
 	struct fib_rule *rule;
+#ifndef CONFIG_SOC_EXYNOS7420
+	int err = 0;
+#endif
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(rule, &ops->rules_list, list) {
 		if (idx < cb->args[1])
 			goto skip;
 
+#ifndef CONFIG_SOC_EXYNOS7420
+		err = fib_nl_fill_rule(skb, rule, NETLINK_CB(cb->skb).portid,
+				       cb->nlh->nlmsg_seq, RTM_NEWRULE,
+				       NLM_F_MULTI, ops);
+		if (err < 0)
+#else
 		if (fib_nl_fill_rule(skb, rule, NETLINK_CB(cb->skb).portid,
 				     cb->nlh->nlmsg_seq, RTM_NEWRULE,
 				     NLM_F_MULTI, ops) < 0)
+#endif
 			break;
 skip:
 		idx++;
@@ -662,7 +672,11 @@ skip:
 	cb->args[1] = idx;
 	rules_ops_put(ops);
 
+#ifndef CONFIG_SOC_EXYNOS7420
+	return err;
+#else
 	return skb->len;
+#endif
 }
 
 static int fib_nl_dumprule(struct sk_buff *skb, struct netlink_callback *cb)
@@ -678,7 +692,13 @@ static int fib_nl_dumprule(struct sk_buff *skb, struct netlink_callback *cb)
 		if (ops == NULL)
 			return -EAFNOSUPPORT;
 
+#ifndef CONFIG_SOC_EXYNOS7420
+		dump_rules(skb, cb, ops);
+
+		return skb->len;
+#else
 		return dump_rules(skb, cb, ops);
+#endif
 	}
 
 	rcu_read_lock();

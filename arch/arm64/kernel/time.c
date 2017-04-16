@@ -74,12 +74,6 @@ unsigned long long notrace sched_clock(void)
 }
 #endif
 
-int read_current_timer(unsigned long *timer_value)
-{
-	*timer_value = arch_timer_read_counter();
-	return 0;
-}
-
 static void dummy_clock_access(struct timespec *ts)
 {
 	ts->tv_sec = 0;
