@@ -66,6 +66,9 @@ arch/*/include/generated
 # stgit generated dirs
 patches-*
 
+# incremental patch files
+patch-*
+
 # quilt's files
 patches
 series
