@@ -1677,7 +1677,17 @@ int regmap_bulk_read(struct regmap *map, unsigned int reg, void *val,
 					  &ival);
 			if (ret != 0)
 				return ret;
-			memcpy(val + (i * val_bytes), &ival, val_bytes);
+#ifdef CONFIG_SWITCH_ARIZONA
+		/*
+		 * The driver for arizona-devices does not support reading
+		 * the register using the method introduced in 3.10.85 yet
+		 * so we are forced to use the old one if the driver for
+		 * arizona-devices is enabled
+		 */
+		memcpy(val + (i * val_bytes), &ival, val_bytes);
+#else
+		map->format.format_val(val + (i * val_bytes), ival, 0);
+#endif
 		}
 	}
 
