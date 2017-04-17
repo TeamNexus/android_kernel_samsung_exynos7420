@@ -1917,7 +1917,7 @@ show_store_gov_pol_sys(min_sample_time);
 show_store_gov_pol_sys(timer_rate);
 show_store_gov_pol_sys(timer_slack);
 show_store_gov_pol_sys(boost);
-store_gov_pol_sys(boostpulse);
+show_store_gov_pol_sys(boostpulse);
 show_store_gov_pol_sys(boostpulse_duration);
 show_store_gov_pol_sys(io_is_busy);
 
@@ -1960,6 +1960,7 @@ gov_sys_pol_attr_rw(min_sample_time);
 gov_sys_pol_attr_rw(timer_rate);
 gov_sys_pol_attr_rw(timer_slack);
 gov_sys_pol_attr_rw(boost);
+gov_sys_pol_attr_rw(boostpulse);
 gov_sys_pol_attr_rw(boostpulse_duration);
 gov_sys_pol_attr_rw(io_is_busy);
 #ifdef CONFIG_MODE_AUTO_CHANGE
@@ -1978,11 +1979,6 @@ gov_sys_pol_attr_rw(single_cluster0_min_freq);
 gov_sys_pol_attr_rw(multi_cluster0_min_freq);
 #endif
 
-static struct global_attr boostpulse_gov_sys =
-	__ATTR(boostpulse, 0200, NULL, store_boostpulse_gov_sys);
-
-static struct freq_attr boostpulse_gov_pol =
-	__ATTR(boostpulse, 0200, NULL, store_boostpulse_gov_pol);
 #ifdef CONFIG_MODE_AUTO_CHANGE
 static struct global_attr cpu_util_gov_sys =
 	__ATTR(cpu_util, 0444, show_cpu_util_gov_sys, NULL);
