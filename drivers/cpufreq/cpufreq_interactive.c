@@ -231,6 +231,8 @@ struct cpufreq_interactive_tunables {
 #endif
 };
 
+#define STORE_AS_BOOL(i) (i ? 1 : 0)
+
 /* For cases where we have single governor instance for system */
 static struct cpufreq_interactive_tunables *common_tunables;
 static struct cpufreq_interactive_tunables *tuned_parameters[NR_CPUS] = {NULL, };
@@ -1346,7 +1348,7 @@ static ssize_t store_enforce_hispeed_freq_limit(struct cpufreq_interactive_tunab
 	if (ret < 0)
 		return ret;
 
-	tunables->enforce_hispeed_freq_limit = val;
+	tunables->enforce_hispeed_freq_limit = STORE_AS_BOOL(val);
 	return count;
 }
 
@@ -1520,7 +1522,7 @@ static ssize_t store_boost(struct cpufreq_interactive_tunables *tunables,
 	if (ret < 0)
 		return ret;
 
-	tunables->boost_val = val;
+	tunables->boost_val = STORE_AS_BOOL(val);
 
 	if (tunables->boost_val) {
 		trace_cpufreq_interactive_boost("on");
@@ -1594,7 +1596,7 @@ static ssize_t store_io_is_busy(struct cpufreq_interactive_tunables *tunables,
 	if (ret < 0)
 		return ret;
 
-	tunables->io_is_busy = val;
+	tunables->io_is_busy = STORE_AS_BOOL(val);
 	return count;
 }
 
