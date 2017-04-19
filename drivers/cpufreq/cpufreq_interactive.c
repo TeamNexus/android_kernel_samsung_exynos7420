@@ -134,6 +134,8 @@ struct cpufreq_interactive_tunables {
 	int usage_count;
 	/* Hi speed to bump to from lo speed when load burst (default max) */
 	unsigned int hispeed_freq;
+	/* Indicates if the hi speed frequency limit should be enforced strictly */
+	int enforce_hispeed_freq_limit;
 	/* Go to hi speed when CPU load at or above this value. */
 #define DEFAULT_GO_HISPEED_LOAD 99
 	unsigned long go_hispeed_load;
@@ -766,6 +768,13 @@ static void cpufreq_interactive_timer(unsigned long data)
 	new_freq = pcpu->freq_table[index].frequency;
 
 	/*
+	 * Do not scale above hispeed_freq if the user requested that
+	 */
+	if (tunables->enforce_hispeed_freq_limit &&
+		new_freq > tunables->hispeed_freq)
+		new_freq = tunables->hispeed_freq;
+
+	/*
 	 * Do not scale below floor_freq unless we have been at or above the
 	 * floor frequency for the minimum sample time since last validated.
 	 */
@@ -1321,6 +1330,26 @@ static ssize_t store_above_hispeed_delay(
 
 }
 
+static ssize_t show_enforce_hispeed_freq_limit(struct cpufreq_interactive_tunables *tunables,
+		char *buf)
+{
+	return sprintf(buf, "%d\n", tunables->enforce_hispeed_freq_limit);
+}
+
+static ssize_t store_enforce_hispeed_freq_limit(struct cpufreq_interactive_tunables *tunables,
+		const char *buf, size_t count)
+{
+	int ret;
+	long unsigned int val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	tunables->enforce_hispeed_freq_limit = val;
+	return count;
+}
+
 static ssize_t show_hispeed_freq(struct cpufreq_interactive_tunables *tunables,
 		char *buf)
 {
@@ -1564,6 +1593,7 @@ static ssize_t store_io_is_busy(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
+
 	tunables->io_is_busy = val;
 	return count;
 }
@@ -1917,6 +1947,7 @@ store_gov_pol_sys(file_name)
 
 show_store_gov_pol_sys(target_loads);
 show_store_gov_pol_sys(above_hispeed_delay);
+show_store_gov_pol_sys(enforce_hispeed_freq_limit);
 show_store_gov_pol_sys(hispeed_freq);
 show_store_gov_pol_sys(go_hispeed_load);
 show_store_gov_pol_sys(min_sample_time);
@@ -1961,6 +1992,7 @@ __ATTR(_name, 0666, show_##_name##_gov_pol, store_##_name##_gov_pol)
 gov_sys_pol_attr_rw(target_loads);
 gov_sys_pol_attr_rw(above_hispeed_delay);
 gov_sys_pol_attr_rw(hispeed_freq);
+gov_sys_pol_attr_rw(enforce_hispeed_freq_limit);
 gov_sys_pol_attr_rw(go_hispeed_load);
 gov_sys_pol_attr_rw(min_sample_time);
 gov_sys_pol_attr_rw(timer_rate);
@@ -2005,6 +2037,7 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 	&target_loads_gov_sys.attr,
 	&above_hispeed_delay_gov_sys.attr,
 	&hispeed_freq_gov_sys.attr,
+	&enforce_hispeed_freq_limit_gov_sys.attr,
 	&go_hispeed_load_gov_sys.attr,
 	&min_sample_time_gov_sys.attr,
 	&timer_rate_gov_sys.attr,
@@ -2045,6 +2078,7 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 	&target_loads_gov_pol.attr,
 	&above_hispeed_delay_gov_pol.attr,
 	&hispeed_freq_gov_pol.attr,
+	&enforce_hispeed_freq_limit_gov_pol.attr,
 	&go_hispeed_load_gov_pol.attr,
 	&min_sample_time_gov_pol.attr,
 	&timer_rate_gov_pol.attr,
