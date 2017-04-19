@@ -1552,11 +1552,17 @@ static ssize_t store_boostpulse(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
+	
+	if (val) {
+		tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
+			tunables->boostpulse_duration_val;
+		trace_cpufreq_interactive_boost("pulse");
+		cpufreq_interactive_boost(policy);
+	} else {
+		tunables->boostpulse_endtime = ktime_to_us(ktime_get());
+		trace_cpufreq_interactive_unboost("off");
+	}
 
-	tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
-		tunables->boostpulse_duration_val;
-	trace_cpufreq_interactive_boost("pulse");
-	cpufreq_interactive_boost(policy);
 	return count;
 }
 
