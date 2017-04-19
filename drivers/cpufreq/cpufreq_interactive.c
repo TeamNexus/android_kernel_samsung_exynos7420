@@ -661,6 +661,7 @@ static void exit_mode(struct cpufreq_interactive_tunables * tunables)
 static void cpufreq_interactive_timer(unsigned long data)
 {
 	u64 now;
+	u64 ktime_now;
 	unsigned int delta_time;
 	u64 cputime_speedadj;
 	int cpu_load;
@@ -687,6 +688,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	now = update_load(data);
+	ktime_now = ktime_to_us(ktime_get());
 	delta_time = (unsigned int)(now - pcpu->cputime_speedadj_timestamp);
 	cputime_speedadj = pcpu->cputime_speedadj;
 	spin_unlock_irqrestore(&pcpu->load_lock, flags);
@@ -713,7 +715,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	do_div(cputime_speedadj, delta_time);
 	loadadjfreq = (unsigned int)cputime_speedadj * 100;
 	cpu_load = loadadjfreq / pcpu->policy->cur;
-	boosted = tunables->boost_val || now < tunables->boostpulse_endtime;
+	boosted = tunables->boost_val || ktime_now < tunables->boostpulse_endtime;
 
 #ifdef CONFIG_PMU_COREMEM_RATIO
 	/* Get crypto load information from PMU */
@@ -1552,17 +1554,11 @@ static ssize_t store_boostpulse(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-	
-	if (val) {
-		tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
-			tunables->boostpulse_duration_val;
-		trace_cpufreq_interactive_boost("pulse");
-		cpufreq_interactive_boost(policy);
-	} else {
-		tunables->boostpulse_endtime = ktime_to_us(ktime_get());
-		trace_cpufreq_interactive_unboost("off");
-	}
 
+	tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
+		tunables->boostpulse_duration_val;
+	trace_cpufreq_interactive_boost("pulse");
+	cpufreq_interactive_boost(policy);
 	return count;
 }
 
