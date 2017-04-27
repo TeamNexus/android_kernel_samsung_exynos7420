@@ -333,11 +333,12 @@ nfs3svc_decode_readargs(struct svc_rqst *rqstp, __be32 *p,
 	if (!(p = decode_fh(p, &args->fh)))
 		return 0;
 	p = xdr_decode_hyper(p, &args->offset);
+	args->count = ntohl(*p++);
 
-	len = args->count = ntohl(*p++);
+	if (!xdr_argsize_check(rqstp, p))
+		return 0;
 
-	if (len > max_blocksize)
-		len = max_blocksize;
+	len = min(args->count, max_blocksize);
 
 	/* set up the kvec */
 	v=0;
@@ -350,7 +351,7 @@ nfs3svc_decode_readargs(struct svc_rqst *rqstp, __be32 *p,
 		v++;
 	}
 	args->vlen = v;
-	return xdr_argsize_check(rqstp, p);
+	return 1;
 }
 
 int
@@ -537,9 +538,11 @@ nfs3svc_decode_readlinkargs(struct svc_rqst *rqstp, __be32 *p,
 {
 	if (!(p = decode_fh(p, &args->fh)))
 		return 0;
+	if (!xdr_argsize_check(rqstp, p))
+		return 0;
 	args->buffer = page_address(*(rqstp->rq_next_page++));
 
-	return xdr_argsize_check(rqstp, p);
+	return 1;
 }
 
 int
@@ -565,12 +568,13 @@ nfs3svc_decode_readdirargs(struct svc_rqst *rqstp, __be32 *p,
 	args->dircount = ~0;
 	args->count  = ntohl(*p++);
 
-	if (args->count > PAGE_SIZE)
-		args->count = PAGE_SIZE;
+	if (!xdr_argsize_check(rqstp, p))
+		return 0;
 
+ 	args->count  = min_t(u32, args->count, PAGE_SIZE);
 	args->buffer = page_address(*(rqstp->rq_next_page++));
 
-	return xdr_argsize_check(rqstp, p);
+	return 1;
 }
 
 int
@@ -586,19 +590,18 @@ nfs3svc_decode_readdirplusargs(struct svc_rqst *rqstp, __be32 *p,
 	args->verf     = p; p += 2;
 	args->dircount = ntohl(*p++);
 	args->count    = ntohl(*p++);
+ 
+	if (!xdr_argsize_check(rqstp, p))
+		return 0;
 
-	len = (args->count > max_blocksize) ? max_blocksize :
-						  args->count;
-	args->count = len;
-
+	len = args->count = min(args->count, max_blocksize);
 	while (len > 0) {
 		struct page *p = *(rqstp->rq_next_page++);
 		if (!args->buffer)
 			args->buffer = page_address(p);
 		len -= PAGE_SIZE;
 	}
-
-	return xdr_argsize_check(rqstp, p);
+	return 1;
 }
 
 int
