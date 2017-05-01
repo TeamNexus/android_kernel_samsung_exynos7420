@@ -1246,6 +1246,7 @@ ssize_t max77843_chg_current_max_tunable_store(struct device *dev,
 		return -EINVAL;
 	}
 
+	charger->charging_current_max = val;
 	charger->charging_current_max_tunable = val;
 
 #if defined(CONFIG_WIRELESS_CHARGER_INBATTERY)
