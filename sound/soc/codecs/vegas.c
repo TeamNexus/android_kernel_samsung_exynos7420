@@ -77,9 +77,6 @@ static int vegas_in2mux_ev(struct snd_soc_dapm_widget *w,
 				struct snd_kcontrol *kcontrol,
 				int event);
 
-<<<<<<< HEAD:sound/soc/codecs/wm8998.c
-static const char * const wm8998_inmux_texts[] = {
-=======
 static int vegas_asrc_ev(struct snd_soc_dapm_widget *w,
 			  struct snd_kcontrol *kcontrol,
 			  int event)
@@ -113,7 +110,6 @@ static int vegas_asrc_ev(struct snd_soc_dapm_widget *w,
 }
 
 static const char * const vegas_inmux_texts[] = {
->>>>>>> b5f9068... ASoC: vegas: rename wm8998 to vegas:sound/soc/codecs/vegas.c
 	"A",
 	"B",
 };
@@ -580,16 +576,6 @@ SND_SOC_DAPM_PGA("PWM1 Driver", ARIZONA_PWM_DRIVE_1, ARIZONA_PWM1_ENA_SHIFT,
 SND_SOC_DAPM_PGA("PWM2 Driver", ARIZONA_PWM_DRIVE_1, ARIZONA_PWM2_ENA_SHIFT,
 		 0, NULL, 0),
 
-<<<<<<< HEAD:sound/soc/codecs/wm8998.c
-SND_SOC_DAPM_PGA("ASRC1L", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC1L_ENA_SHIFT, 0,
-		 NULL, 0),
-SND_SOC_DAPM_PGA("ASRC1R", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC1R_ENA_SHIFT, 0,
-		 NULL, 0),
-SND_SOC_DAPM_PGA("ASRC2L", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC2L_ENA_SHIFT, 0,
-		 NULL, 0),
-SND_SOC_DAPM_PGA("ASRC2R", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC2R_ENA_SHIFT, 0,
-		 NULL, 0),
-=======
 SND_SOC_DAPM_PGA_E("ASRC1L", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC1L_ENA_SHIFT, 0,
 		   NULL, 0, vegas_asrc_ev, SND_SOC_DAPM_PRE_PMU),
 SND_SOC_DAPM_PGA_E("ASRC1R", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC1R_ENA_SHIFT, 0,
@@ -598,7 +584,6 @@ SND_SOC_DAPM_PGA_E("ASRC2L", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC2L_ENA_SHIFT, 0,
 		   NULL, 0, vegas_asrc_ev, SND_SOC_DAPM_PRE_PMU),
 SND_SOC_DAPM_PGA_E("ASRC2R", ARIZONA_ASRC_ENABLE, ARIZONA_ASRC2R_ENA_SHIFT, 0,
 		   NULL, 0, vegas_asrc_ev, SND_SOC_DAPM_PRE_PMU),
->>>>>>> b5f9068... ASoC: vegas: rename wm8998 to vegas:sound/soc/codecs/vegas.c
 
 SND_SOC_DAPM_PGA("ISRC1INT1", ARIZONA_ISRC_1_CTRL_3,
 		 ARIZONA_ISRC1_INT0_ENA_SHIFT, 0, NULL, 0),
