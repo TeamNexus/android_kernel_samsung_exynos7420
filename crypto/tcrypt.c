@@ -67,6 +67,7 @@ static char *check[] = {
 	"lzo", "cts", "zlib", NULL
 };
 
+#ifdef CONFIG_CRYPTO_FIPS
 #ifdef CONFIG_CRYPTO_DRBG
 static char *drbg_cores[] = {
 #ifdef CONFIG_CRYPTO_DRBG_CTR
@@ -88,6 +89,7 @@ static char *drbg_cores[] = {
 #endif /* CONFIG_CRYPTO_DRBG_HMAC */
 };
 #endif /* CONFIG_CRYPTO_DRBG */
+#endif /* CONFIG_CRYPTO_FIPS */
 
 static int test_cipher_jiffies(struct blkcipher_desc *desc, int enc,
 			       struct scatterlist *sg, int blen, int sec)
