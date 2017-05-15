@@ -404,10 +404,10 @@ static void argos_freq_lock(int type, int level)
 
 	cname = argos_pdata->devices[type].desc;
 
-	cpu_min_freq = t->items[CPU_MIN_FREQ];
-	cpu_max_freq = t->items[CPU_MAX_FREQ];
-	kfc_min_freq = t->items[KFC_MIN_FREQ];
-	kfc_max_freq = t->items[KFC_MAX_FREQ];
+	cpu_min_freq = 0; // t->items[CPU_MIN_FREQ];
+	cpu_max_freq = 0; // t->items[CPU_MAX_FREQ];
+	kfc_min_freq = 0; // t->items[KFC_MIN_FREQ];
+	kfc_max_freq = 0; // t->items[KFC_MAX_FREQ];
 	mif_freq = t->items[MIFFREQ];
 	int_freq = t->items[INTFREQ];
 
