@@ -1406,6 +1406,24 @@ static void cpufreq_interactive_nop_timer(unsigned long data)
 {
 }
 
+unsigned int cpufreq_interactive_get_hispeed_freq(int cpu)
+{
+	struct cpufreq_interactive_cpuinfo *pcpu =
+			&per_cpu(cpuinfo, cpu);
+	struct cpufreq_interactive_tunables *tunables;
+
+	if (pcpu && pcpu->policy)
+		tunables = pcpu->policy->governor_data;
+	else
+		return 0;
+
+	if (!tunables)
+		return 0;
+
+	return tunables->hispeed_freq;
+}
+EXPORT_SYMBOL(cpufreq_interactive_get_hispeed_freq);
+
 static int __init cpufreq_interactive_init(void)
 {
 	unsigned int i;
