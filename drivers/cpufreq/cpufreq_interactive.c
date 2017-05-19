@@ -79,8 +79,10 @@ struct cpufreq_interactive_tunables {
 	unsigned int hispeed_freq;
 	/* Indicates if the hi speed frequency limit should be enforced strictly */
 	int enforce_hispeed_freq_limit;
-	/* The absolute limit of the frequency, used to replace scaling_max_freq; default to policy->max */
-	unsigned int freq_limit;
+	/* The upper limit of the scaling-frequency; default to policy->max */
+	unsigned int freq_max;
+	/* The lower limit of the scaling-frequency; default to policy->min */
+	unsigned int freq_min;
 	/* Go to hi speed when CPU load at or above this value. */
 #define DEFAULT_GO_HISPEED_LOAD 99
 	unsigned long go_hispeed_load;
@@ -455,12 +457,20 @@ static void cpufreq_interactive_timer(unsigned long data)
 		new_freq = tunables->hispeed_freq;
 		
 	/*
-	 * Set an absolute upper limit for the frequency. Used to replace
+	 * Set an upper limit for the frequency. Used to replace
 	 * "scaling_max_freq" because the kernel does alter the value 
 	 * somewhere the whole time so we can't probably set it.
 	 */
-	if (new_freq > tunables->freq_limit)
-		new_freq = tunables->freq_limit;
+	if (new_freq > tunables->freq_max)
+		new_freq = tunables->freq_max;
+		
+	/*
+	 * Set a lower limit for the frequency. Used to replace
+	 * "scaling_min_freq" because the kernel does alter the value 
+	 * somewhere the whole time so we can't probably set it.
+	 */
+	if (new_freq < tunables->freq_min)
+		new_freq = tunables->freq_min;
 	 
 	/*
 	 * Do not scale below floor_freq unless we have been at or above the
@@ -900,13 +910,13 @@ static ssize_t store_enforce_hispeed_freq_limit(struct cpufreq_interactive_tunab
 	return count;
 }
 
-static ssize_t show_freq_limit(struct cpufreq_interactive_tunables *tunables,
+static ssize_t show_freq_max(struct cpufreq_interactive_tunables *tunables,
 		char *buf)
 {
-	return sprintf(buf, "%u\n", tunables->freq_limit);
+	return sprintf(buf, "%u\n", tunables->freq_max);
 }
 
-static ssize_t store_freq_limit(struct cpufreq_interactive_tunables *tunables,
+static ssize_t store_freq_max(struct cpufreq_interactive_tunables *tunables,
 		const char *buf, size_t count)
 {
 	int ret;
@@ -916,7 +926,27 @@ static ssize_t store_freq_limit(struct cpufreq_interactive_tunables *tunables,
 	if (ret < 0)
 		return ret;
 
-	tunables->freq_limit = val;
+	tunables->freq_max = val;
+	return count;
+}
+
+static ssize_t show_freq_min(struct cpufreq_interactive_tunables *tunables,
+		char *buf)
+{
+	return sprintf(buf, "%u\n", tunables->freq_min);
+}
+
+static ssize_t store_freq_min(struct cpufreq_interactive_tunables *tunables,
+		const char *buf, size_t count)
+{
+	int ret;
+	long unsigned int val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	tunables->freq_min = val;
 	return count;
 }
 
@@ -1136,7 +1166,8 @@ show_store_gov_pol_sys(target_loads);
 show_store_gov_pol_sys(above_hispeed_delay);
 show_store_gov_pol_sys(hispeed_freq);
 show_store_gov_pol_sys(enforce_hispeed_freq_limit);
-show_store_gov_pol_sys(freq_limit);
+show_store_gov_pol_sys(freq_max);
+show_store_gov_pol_sys(freq_min);
 show_store_gov_pol_sys(go_hispeed_load);
 show_store_gov_pol_sys(min_sample_time);
 show_store_gov_pol_sys(timer_rate);
@@ -1162,7 +1193,8 @@ gov_sys_pol_attr_rw(target_loads);
 gov_sys_pol_attr_rw(above_hispeed_delay);
 gov_sys_pol_attr_rw(hispeed_freq);
 gov_sys_pol_attr_rw(enforce_hispeed_freq_limit);
-gov_sys_pol_attr_rw(freq_limit);
+gov_sys_pol_attr_rw(freq_max);
+gov_sys_pol_attr_rw(freq_min);
 gov_sys_pol_attr_rw(go_hispeed_load);
 gov_sys_pol_attr_rw(min_sample_time);
 gov_sys_pol_attr_rw(timer_rate);
@@ -1178,7 +1210,8 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 	&above_hispeed_delay_gov_sys.attr,
 	&hispeed_freq_gov_sys.attr,
 	&enforce_hispeed_freq_limit_gov_sys.attr,
-	&freq_limit_gov_sys.attr,
+	&freq_max_gov_sys.attr,
+	&freq_min_gov_sys.attr,
 	&go_hispeed_load_gov_sys.attr,
 	&min_sample_time_gov_sys.attr,
 	&timer_rate_gov_sys.attr,
@@ -1201,7 +1234,8 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 	&above_hispeed_delay_gov_pol.attr,
 	&hispeed_freq_gov_pol.attr,
 	&enforce_hispeed_freq_limit_gov_pol.attr,
-	&freq_limit_gov_pol.attr,
+	&freq_max_gov_pol.attr,
+	&freq_min_gov_pol.attr,
 	&go_hispeed_load_gov_pol.attr,
 	&min_sample_time_gov_pol.attr,
 	&timer_rate_gov_pol.attr,
@@ -1340,8 +1374,11 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		if (!tunables->hispeed_freq)
 			tunables->hispeed_freq = policy->max;
 
-		if (!tunables->freq_limit)
-			tunables->freq_limit = policy->max;
+		if (!tunables->freq_max)
+			tunables->freq_max = policy->max;
+
+		if (!tunables->freq_min)
+			tunables->freq_min = policy->min;
 
 		for_each_cpu(j, policy->cpus) {
 			pcpu = &per_cpu(cpuinfo, j);
