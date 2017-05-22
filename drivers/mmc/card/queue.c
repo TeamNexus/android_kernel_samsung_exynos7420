@@ -104,6 +104,11 @@ static int mmc_queue_thread(void *d)
 
 	sched_setscheduler(current, SCHED_FIFO, &scheduler_params);
 
+	struct sched_param scheduler_params = {0};
+	scheduler_params.sched_priority = 1;
+
+	sched_setscheduler(current, SCHED_FIFO, &scheduler_params);
+
 	current->flags |= PF_MEMALLOC;
 
 #if defined(CONFIG_SOC_EXYNOS5430) || defined(CONFIG_SOC_EXYNOS5433)
