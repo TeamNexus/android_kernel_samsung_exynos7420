@@ -68,8 +68,6 @@ static struct mutex gov_lock;
 #define DEFAULT_TARGET_LOAD 90
 static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
 
-#define DOWN_LOW_LOAD_THRESHOLD 6
-
 #define DEFAULT_TIMER_RATE (20 * USEC_PER_MSEC)
 #define DEFAULT_ABOVE_HISPEED_DELAY DEFAULT_TIMER_RATE
 static unsigned int default_above_hispeed_delay[] = {
@@ -85,6 +83,9 @@ struct cpufreq_interactive_tunables {
 	unsigned int freq_max;
 	/* The lower limit of the scaling-frequency; default to policy->min */
 	unsigned int freq_min;
+#define DEFAULT_DOWN_LOW_LOAD_THRESHOLD 6
+	/* The tunable variable for DOWN_LOW_LOAD_THRESHOLD */
+	unsigned int down_low_load_threshold;
 	/* Go to hi speed when CPU load at or above this value. */
 #define DEFAULT_GO_HISPEED_LOAD 99
 	unsigned long go_hispeed_load;
@@ -424,7 +425,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 		} else {
 			new_freq = choose_freq(pcpu, loadadjfreq);
 		}
-	} else if (cpu_load <= DOWN_LOW_LOAD_THRESHOLD) {
+	} else if (cpu_load <= tunables->down_low_load_threshold) {
 		new_freq = pcpu->policy->cpuinfo.min_freq;
 	} else {
 		new_freq = choose_freq(pcpu, loadadjfreq);
@@ -954,6 +955,26 @@ static ssize_t store_freq_min(struct cpufreq_interactive_tunables *tunables,
 	return count;
 }
 
+static ssize_t show_down_low_load_threshold(struct cpufreq_interactive_tunables *tunables,
+		char *buf)
+{
+	return sprintf(buf, "%u\n", tunables->down_low_load_threshold);
+}
+
+static ssize_t store_down_low_load_threshold(struct cpufreq_interactive_tunables *tunables,
+		const char *buf, size_t count)
+{
+	int ret;
+	long unsigned int val;
+
+	ret = strict_strtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	tunables->down_low_load_threshold = val;
+	return count;
+}
+
 static ssize_t show_go_hispeed_load(struct cpufreq_interactive_tunables
 		*tunables, char *buf)
 {
@@ -1172,6 +1193,7 @@ show_store_gov_pol_sys(hispeed_freq);
 show_store_gov_pol_sys(enforce_hispeed_freq_limit);
 show_store_gov_pol_sys(freq_max);
 show_store_gov_pol_sys(freq_min);
+show_store_gov_pol_sys(down_low_load_threshold);
 show_store_gov_pol_sys(go_hispeed_load);
 show_store_gov_pol_sys(min_sample_time);
 show_store_gov_pol_sys(timer_rate);
@@ -1199,6 +1221,7 @@ gov_sys_pol_attr_rw(hispeed_freq);
 gov_sys_pol_attr_rw(enforce_hispeed_freq_limit);
 gov_sys_pol_attr_rw(freq_max);
 gov_sys_pol_attr_rw(freq_min);
+gov_sys_pol_attr_rw(down_low_load_threshold);
 gov_sys_pol_attr_rw(go_hispeed_load);
 gov_sys_pol_attr_rw(min_sample_time);
 gov_sys_pol_attr_rw(timer_rate);
@@ -1216,6 +1239,7 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 	&enforce_hispeed_freq_limit_gov_sys.attr,
 	&freq_max_gov_sys.attr,
 	&freq_min_gov_sys.attr,
+	&down_low_load_threshold_gov_sys.attr,
 	&go_hispeed_load_gov_sys.attr,
 	&min_sample_time_gov_sys.attr,
 	&timer_rate_gov_sys.attr,
@@ -1240,6 +1264,7 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 	&enforce_hispeed_freq_limit_gov_pol.attr,
 	&freq_max_gov_pol.attr,
 	&freq_min_gov_pol.attr,
+	&down_low_load_threshold_gov_pol.attr,
 	&go_hispeed_load_gov_pol.attr,
 	&min_sample_time_gov_pol.attr,
 	&timer_rate_gov_pol.attr,
@@ -1328,6 +1353,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		tunables->timer_rate = DEFAULT_TIMER_RATE;
 		tunables->boostpulse_duration_val = DEFAULT_MIN_SAMPLE_TIME;
 		tunables->timer_slack_val = DEFAULT_TIMER_SLACK;
+		tunables->down_low_load_threshold = DEFAULT_DOWN_LOW_LOAD_THRESHOLD;
 
 		spin_lock_init(&tunables->target_loads_lock);
 		spin_lock_init(&tunables->above_hispeed_delay_lock);
