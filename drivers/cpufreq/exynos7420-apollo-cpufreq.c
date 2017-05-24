@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/cpufreq.h>
 #include <linux/clk-private.h>
+#include <linux/cpuclocker.h>
 
 #include <mach/map.h>
 #include <mach/regs-clock.h>
@@ -96,11 +97,19 @@ static struct apll_freq exynos7420_apll_freq_CA53[] = {
  * ASV group voltage table
  */
 static const unsigned int asv_voltage_7420_CA53[CPUFREQ_LEVEL_END_CA53] = {
+#ifdef CONFIG_EXYNOS7420_OVERCLOCK
+	1368750,	/* L0  2000 */
+	1318750,	/* L1  1900 */
+	1268750,	/* L2  1800 */
+	1218750,	/* L3  1700 */
+	1168750,	/* L4  1600 */
+#else
 	1168750,	/* L0  2000 */
 	1168750,	/* L1  1900 */
 	1168750,	/* L2  1800 */
 	1168750,	/* L3  1700 */
 	1168750,	/* L4  1600 */
+#endif
 	1118750,	/* L5  1500 */
 	1068750,	/* L6  1400 */
 	1018750,	/* L7  1300 */
@@ -142,11 +151,19 @@ static int exynos7420_region_bus_table_CA53[CPUFREQ_LEVEL_END_CA53][6] = {
 };
 #else
 static int exynos7420_bus_table_CA53[CPUFREQ_LEVEL_END_CA53] = {
+#ifdef CONFIG_EXYNOS7420_OVERCLOCK
+	1424000,		/* 2.0 GHz */
+	1424000,		/* 1.9 GHz */
+	1224000,		/* 1.8 GHz */
+	1224000,		/* 1.7 GHz */
+	1224000,		/* 1.6 GHz */
+#else
 	1026000,		/* 2.0 GHz */
 	1026000,		/* 1.9 GHz */
 	1026000,		/* 1.8 GHz */
 	1026000,		/* 1.7 GHz */
 	1026000,		/* 1.6 GHz */
+#endif
 	1026000,		/* 1.5 GHz */
 	1026000,		/* 1.4 GHz */
 	1026000,		/* 1.3 GHz */
@@ -301,10 +318,11 @@ static void __init set_volt_table_CA53(void)
 	case 12 :
 		max_support_idx_CA53 = L7; break;	/* 1.3GHz */
 	default :
-		max_support_idx_CA53 = L5;	/* 1.5GHz */
+		max_support_idx_CA53 = EXYNOS7420_CLUSTER0_MAX_LEVEL;	/* 1.5GHz */
 	}
 
-	min_support_idx_CA53 = L16;	/* 400MHz */
+	min_support_idx_CA53 = EXYNOS7420_CLUSTER0_MIN_LEVEL;	/* 400MHz */
+
 	pr_info("CPUFREQ of CA53 max_freq : L%d %u khz\n", max_support_idx_CA53,
 		exynos7420_freq_table_CA53[max_support_idx_CA53].frequency);
 	pr_info("CPUFREQ of CA53 min_freq : L%d %u khz\n", min_support_idx_CA53,

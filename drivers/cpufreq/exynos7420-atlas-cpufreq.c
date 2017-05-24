@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/cpufreq.h>
 #include <linux/clk-private.h>
+#include <linux/cpuclocker.h>
 
 #include <mach/map.h>
 #include <mach/regs-clock.h>
@@ -127,10 +128,17 @@ static struct apll_freq exynos7420_apll_freq_CA57[] = {
  * ASV group voltage table
  */
 static const unsigned int asv_voltage_7420_CA57[CPUFREQ_LEVEL_END_CA57] = {
+#ifdef CONFIG_EXYNOS7420_OVERCLOCK
+	1450000,	/* L0  2500 */
+	1400000,	/* L1  2400 */
+	1350000,	/* L2  2300 */
+	1300000,	/* L3  2200 */
+#else
 	1250000,	/* L0  2500 */
 	1250000,	/* L1  2400 */
 	1250000,	/* L2  2300 */
 	1250000,	/* L3  2200 */
+#endif
 	1250000,	/* L4  2100 */
 	1200000,	/* L5  2000 */
 	1156250,	/* L6  1900 */
@@ -183,10 +191,17 @@ static int exynos7420_region_bus_table_CA57[CPUFREQ_LEVEL_END_CA57][6] = {
 };
 #else
 static int exynos7420_bus_table_CA57[CPUFREQ_LEVEL_END_CA57] = {
+#ifdef CONFIG_EXYNOS7420_OVERCLOCK
+	1748000,		/* 2.5 GHz */
+	1748000,		/* 2.4 GHz */
+	1648000,		/* 2.3 GHz */
+	1648000,		/* 2.2 GHz */
+#else
 	1552000,		/* 2.5 GHz */
 	1552000,		/* 2.4 GHz */
 	1552000,		/* 2.3 GHz */
 	1552000,		/* 2.2 GHz */
+#endif
 	1552000,		/* 2.1 GHz */
 	1456000,		/* 2.0 GHz */
 	1264000,		/* 1.9 GHz */
@@ -384,13 +399,13 @@ static void __init set_volt_table_CA57(void)
 	case 5 :
 		max_support_idx_CA57 = L10; break;	/* 1.5GHz */
 	default :
-		max_support_idx_CA57 = L4;		/* 2.1GHz */
+		max_support_idx_CA57 = EXYNOS7420_CLUSTER1_MAX_LEVEL;		/* 2.1GHz */
 	}
 #else
 	max_support_idx_CA57 = L13;	/* 1.2 GHz */
 #endif
 
-	min_support_idx_CA57 = L17;	/* 800 MHz */
+	min_support_idx_CA57 = EXYNOS7420_CLUSTER1_MIN_LEVEL;	/* 800 MHz */
 
 	pr_info("CPUFREQ of CA57 max_freq : L%d %u khz\n", max_support_idx_CA57,
 		exynos7420_freq_table_CA57[max_support_idx_CA57].frequency);
