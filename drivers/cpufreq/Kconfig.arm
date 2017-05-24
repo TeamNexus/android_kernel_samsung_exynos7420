@@ -207,3 +207,15 @@ config PMU_COREMEM_RATIO
 	depends on ARCH_EXYNOS
 	help
 	  This supports coremem ratio region by pmu count
+
+config EXYNOS7420_UNDERCLOCK
+	bool "Support underclocking CPU on Exynos 7420 SoCs"
+	depends on ARCH_EXYNOS
+	help
+	  Support underclocking CPU on Exynos 7420 SoCs
+
+config EXYNOS7420_OVERCLOCK
+	bool "Support overclocking CPU on Exynos 7420 SoCs"
+	depends on ARCH_EXYNOS
+	help
+	  Support overclocking CPU on Exynos 7420 SoCs
