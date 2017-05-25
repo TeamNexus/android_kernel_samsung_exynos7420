@@ -386,6 +386,8 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
 		   -fdiagnostics-show-option \
+		   -march=armv8-a+crc \
+		   -mtune=cortex-a57.cortex-a53 \
 		   -std=gnu89 \
 		   -Werror
 KBUILD_AFLAGS_KERNEL :=
