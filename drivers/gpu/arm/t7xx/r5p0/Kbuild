@@ -273,14 +273,9 @@ ifeq ($(CONFIG_MALI_PLATFORM_FAKE),y)
 endif # CONFIG_MALI_PLATFORM_FAKE=y
 
 ifeq ($(CONFIG_MALI_PLATFORM_THIRDPARTY),y)
-ifeq ($(CONFIG_MALI_R5P0),m)
-# remove begin and end quotes from the Kconfig string type
-platform_name := $(shell echo $(CONFIG_MALI_PLATFORM_THIRDPARTY_NAME))
-MALI_PLATFORM_THIRDPARTY_DIR := platform/$(platform_name)
-include  $(src)/platform/$(platform_name)/Kbuild
-else ifeq ($(CONFIG_MALI_R5P0),y)
-obj-$(CONFIG_MALI_R5P0) += platform/
-endif
+	ifeq ($(CONFIG_MALI_R5P0),y)
+		obj-$(CONFIG_MALI_R5P0) += platform/
+	endif
 endif
 
 # Tell the Linux build system from which .o file to create the kernel module
