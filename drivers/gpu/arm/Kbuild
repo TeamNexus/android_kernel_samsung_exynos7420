@@ -15,6 +15,9 @@ obj-$(CONFIG_MALI_MIDGARD) += midgard/
 obj-$(CONFIG_MALI_MIDGARD_WK04) += midgard_wk04/
 obj-$(CONFIG_MALI400) += mali400/
 ifeq ($(CONFIG_MALI_T7XX),y)
+	ifeq ($(CONFIG_MALI_R5P0),y)
+		obj-y += t7xx/r5p0/
+	endif
 	ifeq ($(CONFIG_MALI_R7P0),y)
 		obj-y += t7xx/r7p0/
 	endif
