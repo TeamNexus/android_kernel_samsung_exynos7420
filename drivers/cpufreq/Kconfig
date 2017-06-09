@@ -118,6 +118,12 @@ config CPU_FREQ_DEFAULT_GOV_ALUCARD
 	help
 	  Use the CPUFreq governor 'alucard' as default.
 
+config CPU_FREQ_DEFAULT_GOV_NEXUS
+	bool "interactive"
+	select CPU_FREQ_GOV_NEXUS
+	help
+	  Use the CPUFreq governor 'nexus' as default.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -197,6 +203,18 @@ config CPU_FREQ_GOV_ALUCARD
 	tristate "'alucard' cpufreq policy governor"
 	help
 	  Compile the CPUFreq governor 'alucard'.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called cpufreq_interactive.
+
+	  For details, take a look at linux/Documentation/cpu-freq.
+
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_NEXUS
+	tristate "'nexus' cpufreq policy governor"
+	help
+	  Compile the CPUFreq governor 'nexus'.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called cpufreq_interactive.
