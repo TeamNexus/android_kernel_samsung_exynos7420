@@ -2130,7 +2130,8 @@ static irqreturn_t max77833_fg_salrt_irq_thread(int irq, void *irq_data)
 	} else {
 		wake_lock(&fuelgauge->fuel_salrt_wake_lock);
 		fuelgauge->is_fuel_alerted = true;
-		schedule_delayed_work(&fuelgauge->salrt_irq_work, 0);
+		queue_delayed_work(system_power_efficient_wq,
+			&fuelgauge->salrt_irq_work, 0);
 	}
 
 	return IRQ_HANDLED;
@@ -2150,7 +2151,8 @@ static irqreturn_t max77833_fg_valrt_irq_thread(int irq, void *irq_data)
 	} else {
 		wake_lock(&fuelgauge->fuel_valrt_wake_lock);
 		fuelgauge->is_fuel_alerted = true;
-		schedule_delayed_work(&fuelgauge->valrt_irq_work, 0);
+		queue_delayed_work(system_power_efficient_wq,
+			&fuelgauge->valrt_irq_work, 0);
 	}
 
 	return IRQ_HANDLED;
