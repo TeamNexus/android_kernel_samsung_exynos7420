@@ -1213,7 +1213,8 @@ static irqreturn_t sx9310_reinit_int_th(int irq, void *pdata)
 		pr_info("[SX9310]: %s - happen irq ldo en\n",
 			__func__);
 		wake_lock_timeout(&data->grip_wake_lock, 3 * HZ);
-		schedule_delayed_work(&data->reinit_irq_work, msecs_to_jiffies(10));
+		queue_delayed_work(system_power_efficient_wq,
+			&data->reinit_irq_work, msecs_to_jiffies(10));
 	} else {
 		pr_err("[SX9310]: %s - nirq ldo read low\n", __func__);
 	}
@@ -1246,7 +1247,8 @@ static void sx9310_init_work_func(struct work_struct *work)
 	} else {
 		if (data->retry_cnt < 10) {
 			data->retry_cnt++;
-			schedule_delayed_work(&data->init_work,
+			queue_delayed_work(system_power_efficient_wq,
+				&data->init_work,
 				msecs_to_jiffies(500));
 		} else {
 			pr_err("[SX9310]: %s - ldo retry fail\n", __func__);
@@ -1276,7 +1278,8 @@ static irqreturn_t sx9310_interrupt_thread(int irq, void *pdata)
 		pr_err("[SX9310]: %s - nirq read high\n", __func__);
 	} else {
 		wake_lock_timeout(&data->grip_wake_lock, 3 * HZ);
-		schedule_delayed_work(&data->irq_work, msecs_to_jiffies(100));
+		queue_delayed_work(system_power_efficient_wq,
+			&data->irq_work, msecs_to_jiffies(100));
 	}
 
 	return IRQ_HANDLED;
@@ -1486,7 +1489,8 @@ static int sx9310_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&data->reinit_irq_work, sx9310_reinit_irq_work_func);
 #else
 	INIT_DELAYED_WORK(&data->init_work, sx9310_init_work_func);
-	schedule_delayed_work(&data->init_work, msecs_to_jiffies(5000));
+	queue_delayed_work(system_power_efficient_wq,
+		&data->init_work, msecs_to_jiffies(5000));
 #endif
 	INIT_DELAYED_WORK(&data->irq_work, sx9310_irq_work_func);
 	mutex_init(&data->mode_mutex);
