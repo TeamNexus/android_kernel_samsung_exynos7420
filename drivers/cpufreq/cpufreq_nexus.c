@@ -86,10 +86,15 @@ struct cpufreq_nexus_tunables {
 	unsigned int freq_max;
 
 	// simple boost to freq_max
+	#define DEFAULT_BOOST 0
 	int boost;
 
 	// time in usecs when current boostpulse ends
 	u64 boostpulse;
+
+	// if non-zero, work gets queued on power-efficient workqueue
+	#define DEFAULT_WORK_ON_SYSTEM_PEWQ 0
+	int work_on_system_pewq;
 };
 
 static DEFINE_PER_CPU(struct cpufreq_nexus_cpuinfo, gov_cpuinfo);
@@ -182,7 +187,10 @@ requeue:
 		delay -= jiffies % delay;
 	}
 
-	queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
+	if (tunables->work_on_system_pewq)
+		queue_delayed_work_on(cpu, system_power_efficient_wq, &cpuinfo->work, delay);
+	else
+		queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
 
 exit:
 	mutex_unlock(&cpuinfo->timer_mutex);
@@ -282,6 +290,7 @@ gov_sys_pol_show_store(freq_min);
 gov_sys_pol_show_store(freq_max);
 gov_sys_pol_show_store(boost);
 gov_sys_pol(boostpulse);
+gov_sys_pol_show_store(work_on_system_pewq);
 
 static struct attribute *attributes_gov_sys[] = {
 	&down_load_gov_sys.attr,
@@ -294,6 +303,7 @@ static struct attribute *attributes_gov_sys[] = {
 	&freq_max_gov_sys.attr,
 	&boost_gov_sys.attr,
 	&boostpulse_gov_sys.attr,
+	&work_on_system_pewq_gov_sys.attr,
 	NULL // NULL has to be terminating entry
 };
 
@@ -313,6 +323,7 @@ static struct attribute *attributes_gov_pol[] = {
 	&freq_max_gov_pol.attr,
 	&boost_gov_pol.attr,
 	&boostpulse_gov_pol.attr,
+	&work_on_system_pewq_gov_pol.attr,
 	NULL // NULL has to be terminating entry
 };
 
@@ -359,8 +370,9 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 			tunables->io_is_busy = DEFAULT_IO_IS_BUSY;
 			tunables->freq_min = policy->min;
 			tunables->freq_max = policy->max;
-			tunables->boost = 0;
+			tunables->boost = DEFAULT_BOOST;
 			tunables->boostpulse = 0;
+			tunables->work_on_system_pewq = DEFAULT_WORK_ON_SYSTEM_PEWQ;
 
 			rc = sysfs_create_group(get_governor_parent_kobj(policy),
 					get_attribute_group());
@@ -415,7 +427,10 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 			mutex_unlock(&cpufreq_governor_nexus_mutex);
 
 			INIT_DEFERRABLE_WORK(&cpuinfo->work, cpufreq_nexus_timer);
-			queue_delayed_work_on(cpuinfo->cpu, system_wq, &cpuinfo->work, delay);
+			if (tunables->work_on_system_pewq)
+				queue_delayed_work_on(cpu, system_power_efficient_wq, &cpuinfo->work, delay);
+			else
+				queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
 
 			break;
 
