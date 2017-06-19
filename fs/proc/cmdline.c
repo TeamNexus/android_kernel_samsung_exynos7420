@@ -41,7 +41,7 @@ static void proc_cmdline_set(char *name, char *value)
 				(int)(flag_pos - updated_command_line + 1),
 				updated_command_line, name, value, flag_after);
 	} else {
-		// flag was found, insert it
+		// flag was not found, insert it
 		scnprintf(updated_command_line, COMMAND_LINE_SIZE, "%s %s=%s", updated_command_line, name, value);
 	}
 }
@@ -56,6 +56,8 @@ static int __init proc_cmdline_init(void)
 	proc_cmdline_set("androidboot.boot.flash.locked", "1");
 	proc_cmdline_set("androidboot.boot.ddrinfo", "00000001");
 	proc_cmdline_set("androidboot.crypto.state", "encrypted");
+	proc_cmdline_set("androidboot.warranty_bit", "0");
+	proc_cmdline_set("androidboot.boot.warranty_bit", "0");
 
 	proc_create("cmdline", 0, NULL, &cmdline_proc_fops);
 	return 0;
