@@ -93,7 +93,7 @@ struct cpufreq_nexus_tunables {
 	u64 boostpulse;
 
 	// if non-zero, work gets queued on power-efficient workqueue
-	#define DEFAULT_WORK_ON_SYSTEM_PEWQ 0
+	#define DEFAULT_WORK_ON_SYSTEM_PEWQ 1
 	int work_on_system_pewq;
 };
 
