@@ -275,7 +275,8 @@ static int gpu_dvfs_update_asv_table(struct exynos_context *platform)
 			GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "DEVFREQ: %uKhz, ABB %u\n", dvfs_table[i].clock*1000, dvfs_table[i].asv_abb);
 		}
 
-		voltage = get_match_volt(ID_G3D, dvfs_table[i].clock*1000);
+		/* ^^ */
+		voltage = dvfs_table[i].voltage; // get_match_volt(ID_G3D, dvfs_table[i].clock*1000);
 		if (voltage > 0)
 			dvfs_table[i].voltage = voltage;
 		GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "G3D %dKhz ASV is %duV\n", dvfs_table[i].clock*1000, dvfs_table[i].voltage);

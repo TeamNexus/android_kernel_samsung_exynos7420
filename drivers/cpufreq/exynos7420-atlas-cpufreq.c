@@ -155,10 +155,10 @@ static const unsigned int asv_voltage_7420_CA57[CPUFREQ_LEVEL_END_CA57] = {
 	 825000,	/* L17  800 */
 	 800000,	/* L18  700 */
 	 775000,	/* L19  600 */
-	 750000,	/* L20  500 */
-	 725000,	/* L21  400 */
-	 700000,	/* L22  300 */
-	 675000,	/* L23  200 */
+	 740000,	/* L20  500 */
+	 705000,	/* L21  400 */
+	 660000,	/* L22  300 */
+	 625000,	/* L23  200 */
 };
 
 /* minimum memory throughput in megabytes per second */
