@@ -26,24 +26,20 @@ static const struct file_operations cmdline_proc_fops = {
 
 static void proc_cmdline_set(char *name, char *value)
 {
-	char *flag_pos, *flag_after;
-	char flag_pos_str[COMMAND_LINE_SIZE];
+	char flag_str[COMMAND_LINE_SIZE];
+	char *flag_substr;
+	char *flag_space_substr;
 
-	scnprintf(flag_pos_str, COMMAND_LINE_SIZE, "%s=", name);
-	
-	flag_pos = strstr(updated_command_line, flag_pos_str);
-	if (flag_pos) {
-		flag_after = strchr(flag_pos, ' ');
-		if (!flag_after)
-			flag_after = "";
+	scnprintf(flag_str, COMMAND_LINE_SIZE, "%s=", name);
+	flag_substr = strstr(updated_command_line, flag_str);
 
-		scnprintf(updated_command_line, COMMAND_LINE_SIZE, "%.*s%s=%s%s",
-				(int)(flag_pos - updated_command_line + 1),
-				updated_command_line, name, value, flag_after);
-	} else {
-		// flag was not found, insert it
-		scnprintf(updated_command_line, COMMAND_LINE_SIZE, "%s %s=%s", updated_command_line, name, value);
+	if (flag_substr) {
+		flag_space_substr = strchr(flag_substr, ' ');
+		scnprintf(updated_command_line, COMMAND_LINE_SIZE, "%.*s%s", (int)(flag_substr - updated_command_line), updated_command_line, flag_space_substr + 1);
 	}
+
+	// flag was not found, insert it
+	scnprintf(updated_command_line, COMMAND_LINE_SIZE, "%s %s=%s", updated_command_line, name, value);
 }
 
 static int __init proc_cmdline_init(void)
