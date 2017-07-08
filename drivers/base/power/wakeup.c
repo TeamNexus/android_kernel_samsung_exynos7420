@@ -18,19 +18,26 @@
 #include <linux/fb.h>
 #endif
 #include <trace/events/power.h>
+#include <linux/moduleparam.h>
 
 #include "power.h"
 
-#include <linux/moduleparam.h>
+#define wakelock_define(name, file_name)                                  \
+	static bool wakelock_##name = true;                                   \
+	module_param_named(wakelock_##file_name, wakelock_##name, bool, 0664)
 
-static bool enable_sensorhub_wl = true;
-module_param(enable_sensorhub_wl, bool, 0644);
+#define wakelock_check(_name)                             \
+	if (!wakelock_##_name && !strcmp(ws->name, #_name)) { \
+		pr_info("skipping wakeup-source " #_name "\n");   \
+		return;                                           \
+	}
 
-static bool enable_ssp_wl = true;
-module_param(enable_ssp_wl, bool, 0644);
-
-static bool enable_bcm4773_wl = true;
-module_param(enable_bcm4773_wl, bool, 0644);
+wakelock_define(grip_wake_lock, sensorhub_grip);
+wakelock_define(ssp_wake_lock, sensorhub_ssp);
+wakelock_define(ssp_sensorhub_wake_lock, sensorhub_ssp2);
+wakelock_define(bcm4773_wake_lock, sensorhub_gps);
+wakelock_define(ese_wake_lock, nfc_ese);
+wakelock_define(nfc_wake_lock, nfc_sec);
 
 /*
  * If set, the suspend/hibernate code will abort transitions to a sleep state
@@ -399,20 +406,12 @@ static void wakeup_source_activate(struct wakeup_source *ws)
 {
 	unsigned int cec;
 
-	if (!enable_sensorhub_wl && !strcmp(ws->name, "ssp_sensorhub_wake_lock")) {
-		pr_info("wakeup source sensorhub activation skipped\n");
-		return;
-	}
-
-	if (!enable_ssp_wl && !strcmp(ws->name, "ssp_wake_lock")) {
-		pr_info("wakeup source ssp activation skipped\n");
-		return;
-	}
-
-	if (!enable_bcm4773_wl && !strcmp(ws->name, "bcm4773_wake_lock")) {
-		pr_info("wakeup source bcm4773 activation skipped\n");
-		return;
-	}
+	wakelock_check(grip_wake_lock);
+	wakelock_check(ssp_wake_lock);
+	wakelock_check(ssp_sensorhub_wake_lock);
+	wakelock_check(bcm4773_wake_lock);
+	wakelock_check(ese_wake_lock);
+	wakelock_check(nfc_wake_lock);
 
 	/*
 	 * active wakeup source should bring the system
