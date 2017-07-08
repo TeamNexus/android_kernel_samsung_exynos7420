@@ -185,7 +185,6 @@ typedef struct _gpu_dvfs_info {
 	int mem_freq;
 	int int_freq;
 	int cpu_freq;
-	int cpu_max_freq;
 } gpu_dvfs_info;
 
 typedef struct _gpu_dvfs_governor_info {
