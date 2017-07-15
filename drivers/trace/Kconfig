@@ -189,5 +189,14 @@ config EXYNOS_CORESIGHT_STM
 	help
 	  STM driver is a driver for H/W event and S/W event debugging.
 
+config EXYNOS_DUMP_TASK_INFO_ONCE
+	bool "Dump task info only once"
+	depends on ARCH_EXYNOS
+	default y
+	help
+	  Prevents exynos_ss_dump_task_info() to dump all available tasks which
+	  floods the kernel-logs under nearly all circumstances and removes
+	  important informations from last_kmsg.
+
 endif
 #
