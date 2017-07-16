@@ -49,12 +49,12 @@ void __iomem *g3d1_outstanding_regs;
 /*  clock, voltage, asv_abb, min_threshold, max_threshold, down_staycount, time, mem_freq, int_freq, cpu_freq (cl0) */
 static gpu_dvfs_info gpu_dvfs_table_default[] = {
 	{ 772, 900000, 0, 98, 100, 1, 0, 1552000, 400000, 1500000 },
-	{ 700, 900000, 0, 98,  99, 1, 0, 1552000, 400000, 1500000 },
-	{ 600, 900000, 0, 78,  85, 1, 0, 1552000, 413000, 1500000 },
-	{ 544, 900000, 0, 78,  85, 1, 0, 1026000, 413000, 1500000 },
-	{ 420, 900000, 0, 78,  85, 1, 0, 1026000, 267000,  900000 },
-	{ 350, 900000, 0, 78,  85, 1, 0,  543000, 200000,       0 },
-	{ 266, 900000, 0, 78,  85, 1, 0,  416000, 160000,       0 },
+	{ 700, 864000, 0, 98,  99, 1, 0, 1552000, 400000, 1200000 },
+	{ 600, 814000, 0, 78,  85, 1, 0, 1552000, 413000,  900000 },
+	{ 544, 786000, 0, 78,  85, 1, 0, 1026000, 413000,  600000 },
+	{ 420, 724000, 0, 78,  85, 1, 0, 1026000, 267000,       0 },
+	{ 350, 689000, 0, 78,  85, 1, 0,  543000, 200000,       0 },
+	{ 266, 647000, 0, 78,  85, 1, 0,  416000, 160000,       0 },
 };
 
 static int mif_min_table[] = {
@@ -101,7 +101,7 @@ static gpu_attribute gpu_config_attributes[] = {
 	{GPU_TEMP_THROTTLING3, 420},
 	{GPU_TEMP_THROTTLING4, 350},
 	{GPU_TEMP_TRIPPING, 266},
-	{GPU_POWER_COEFF, 443}, /* all core on param */
+	{GPU_POWER_COEFF, 900}, /* all core on param */
 	{GPU_DVFS_TIME_INTERVAL, 5},
 	{GPU_DEFAULT_WAKEUP_LOCK, 1},
 	{GPU_BUS_DEVFREQ, 1},
