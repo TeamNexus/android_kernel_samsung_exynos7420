@@ -46,3 +46,5 @@ $(obj)/aes-glue-%.o: $(src)/aes-glue.c FORCE
 
 #Keep this at the bottom
 obj-$(CONFIG_CRYPTO_FIPS) += last_file_asm.o
+
+ccflags-y := -O3
