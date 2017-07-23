@@ -548,7 +548,7 @@ int kbase_instr_backend_init(struct kbase_device *kbdev)
 	kbdev->hwcnt.backend.cache_clean_wq =
 		/* MALI_SEC_INTEGRATION */
 		/* alloc_workqueue option is changed to ordered */
-			alloc_workqueue("Mali cache cleaning workqueue", WQ_UNBOUND | __WQ_ORDERED | 0, 1);
+			alloc_workqueue("Mali cache cleaning workqueue", WQ_UNBOUND | __WQ_ORDERED | WQ_POWER_EFFICIENT | 0, 1);
 	if (NULL == kbdev->hwcnt.backend.cache_clean_wq)
 		ret = -EINVAL;
 

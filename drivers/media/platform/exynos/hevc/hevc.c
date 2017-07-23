@@ -1918,7 +1918,7 @@ static int hevc_probe(struct platform_device *pdev)
 	exynos_create_iovmm(&pdev->dev, 3, 3);
 #endif
 	dev->sched_wq = alloc_workqueue("hevc/sched", WQ_UNBOUND
-					| WQ_MEM_RECLAIM | WQ_HIGHPRI, 1);
+					| WQ_MEM_RECLAIM | WQ_HIGHPRI | WQ_POWER_EFFICIENT, 1);
 	if (dev->sched_wq == NULL) {
 		dev_err(&pdev->dev, "failed to create workqueue for scheduler\n");
 		goto err_wq_sched;

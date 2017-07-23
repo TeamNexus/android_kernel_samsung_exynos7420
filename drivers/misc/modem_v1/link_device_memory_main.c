@@ -942,7 +942,7 @@ static int mem_rx_setup(struct link_device *ld)
 #endif
 
 	ld->rx_wq = alloc_workqueue(
-			"mem_rx_work", WQ_HIGHPRI | WQ_CPU_INTENSIVE, 1);
+			"mem_rx_work", WQ_HIGHPRI | WQ_CPU_INTENSIVE | WQ_POWER_EFFICIENT, 1);
 	if (!ld->rx_wq) {
 		mif_err("%s: ERR! fail to create rx_wq\n", ld->name);
 		return -ENOMEM;

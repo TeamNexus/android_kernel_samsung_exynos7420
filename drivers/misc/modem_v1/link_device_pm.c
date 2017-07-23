@@ -981,7 +981,7 @@ int init_link_device_pm(struct link_device *ld,
 	wake_lock_init(&pm->wlock, WAKE_LOCK_SUSPEND, pm->wlock_name);
 
 	snprintf(pm->wq_name, MAX_NAME_LEN, "%s_pm_wq", pm->link_name);
-	flags = WQ_NON_REENTRANT | WQ_UNBOUND | WQ_HIGHPRI;
+	flags = WQ_NON_REENTRANT | WQ_UNBOUND | WQ_HIGHPRI | WQ_POWER_EFFICIENT;
 	pm->wq = alloc_workqueue(pm->wq_name, flags, 1);
 	if (!pm->wq) {
 		mif_err("%s: ERR! fail to create %s\n",

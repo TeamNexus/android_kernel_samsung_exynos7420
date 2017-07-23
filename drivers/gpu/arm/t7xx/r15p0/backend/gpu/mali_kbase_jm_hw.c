@@ -956,7 +956,7 @@ int kbase_job_slot_init(struct kbase_device *kbdev)
 	kbdev->hwaccess.backend.reset_workq =
 		/* MALI_SEC_INTEGRATION */
 		/* alloc_workqueue option is changed to ordered */
-		alloc_workqueue("Mali reset workqueue", WQ_UNBOUND | __WQ_ORDERED | 0, 1);
+		alloc_workqueue("Mali reset workqueue", WQ_UNBOUND | __WQ_ORDERED | WQ_POWER_EFFICIENT | 0, 1);
 	if (NULL == kbdev->hwaccess.backend.reset_workq)
 		return -EINVAL;
 

@@ -440,7 +440,7 @@ int kbase_debug_job_fault_dev_init(struct kbase_device *kbdev)
 	/* MALI_SEC_INTEGRATION */
 	/* alloc_workqueue option is changed to ordered */
 	kbdev->job_fault_resume_workq = alloc_workqueue(
-			"kbase_job_fault_resume_work_queue", WQ_UNBOUND | __WQ_ORDERED | WQ_MEM_RECLAIM, 1);
+			"kbase_job_fault_resume_work_queue", WQ_UNBOUND | __WQ_ORDERED | WQ_MEM_RECLAIM | WQ_POWER_EFFICIENT, 1);
 	if (!kbdev->job_fault_resume_workq)
 		return -ENOMEM;
 

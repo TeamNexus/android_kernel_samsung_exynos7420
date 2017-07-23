@@ -271,7 +271,7 @@ int kbase_event_init(struct kbase_context *kctx)
 	atomic_set(&kctx->event_closed, false);
 	/* MALI_SEC_INTEGRATION */
 	/* alloc_workqueue option is changed to ordered */
-	kctx->event_workq = alloc_workqueue("kbase_event", WQ_UNBOUND | __WQ_ORDERED | WQ_MEM_RECLAIM, 1);
+	kctx->event_workq = alloc_workqueue("kbase_event", WQ_UNBOUND | __WQ_ORDERED | WQ_MEM_RECLAIM | WQ_POWER_EFFICIENT, 1);
 
 	if (NULL == kctx->event_workq)
 		return -EINVAL;

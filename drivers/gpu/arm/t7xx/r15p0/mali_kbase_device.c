@@ -82,7 +82,7 @@ static int kbase_device_as_init(struct kbase_device *kbdev, int i)
 
 	/* MALI_SEC_INTEGRATION */
 	/* alloc_workqueue option is changed to ordered */
-	kbdev->as[i].pf_wq = alloc_workqueue(name, WQ_UNBOUND | __WQ_ORDERED | 0, 1);
+	kbdev->as[i].pf_wq = alloc_workqueue(name, WQ_UNBOUND | __WQ_ORDERED | WQ_POWER_EFFICIENT | 0, 1);
 	if (!kbdev->as[i].pf_wq)
 		return -EINVAL;
 
@@ -95,7 +95,7 @@ static int kbase_device_as_init(struct kbase_device *kbdev, int i)
 
 		/* MALI_SEC_INTEGRATION */
 		/* alloc_workqueue option is changed to ordered */
-		kbdev->as[i].poke_wq = alloc_workqueue(poke_name, WQ_UNBOUND | __WQ_ORDERED | 0, 1);
+		kbdev->as[i].poke_wq = alloc_workqueue(poke_name, WQ_UNBOUND | __WQ_ORDERED | WQ_POWER_EFFICIENT | 0, 1);
 		if (!kbdev->as[i].poke_wq) {
 			destroy_workqueue(kbdev->as[i].pf_wq);
 			return -EINVAL;

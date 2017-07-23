@@ -1871,7 +1871,7 @@ int kbase_jd_init(struct kbase_context *kctx)
 	/* MALI_SEC_INTEGRATION */
 	/* alloc_workqueue option is changed to ordered */
 	kctx->jctx.job_done_wq = alloc_workqueue("mali_jd",
-			WQ_HIGHPRI | __WQ_ORDERED | WQ_UNBOUND, 1);
+			WQ_HIGHPRI | __WQ_ORDERED | WQ_UNBOUND | WQ_POWER_EFFICIENT, 1);
 	if (NULL == kctx->jctx.job_done_wq) {
 		mali_err = -ENOMEM;
 		goto out1;

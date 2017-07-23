@@ -10583,7 +10583,7 @@ static s32 wl_create_event_handler(struct bcm_cfg80211 *cfg)
 
 	/* Allocate workqueue for event */
 	if (!cfg->event_workq) {
-		cfg->event_workq = alloc_workqueue("dhd_eventd", WQ_MEM_RECLAIM | WQ_HIGHPRI, 0);
+		cfg->event_workq = alloc_workqueue("dhd_eventd", WQ_MEM_RECLAIM | WQ_HIGHPRI | WQ_POWER_EFFICIENT, 0);
 	}
 
 	if (!cfg->event_workq) {

@@ -1991,7 +1991,7 @@ int fimc_is_flite_probe(struct fimc_is_device_sensor *device,
 	flite->chk_early_buf_done = NULL;
 #ifdef SUPPORTED_EARLY_BUF_DONE
 	flite->chk_early_buf_done = chk_early_buf_done;
-	flite->early_workqueue = alloc_workqueue("fimc-is/early_workqueue/highpri", WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_HIGHPRI, 1);
+	flite->early_workqueue = alloc_workqueue("fimc-is/early_workqueue/highpri", WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_HIGHPRI | WQ_POWER_EFFICIENT, 1);
 	if (!flite->early_workqueue) {
 		warn("failed to alloc own workqueue, will be use global one");
 		goto err_reg_v4l2_subdev;

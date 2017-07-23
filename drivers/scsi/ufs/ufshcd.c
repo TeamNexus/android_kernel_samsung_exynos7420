@@ -878,7 +878,7 @@ static int ufshcd_init_clk_gating(struct ufs_hba *hba)
 		goto out;
 
 	hba->ufshcd_workq = alloc_workqueue("ufshcd_wq",
-				WQ_NON_REENTRANT | WQ_HIGHPRI, 0);
+				WQ_NON_REENTRANT | WQ_HIGHPRI | WQ_POWER_EFFICIENT, 0);
 	if (!hba->ufshcd_workq) {
 		ret = -ENOMEM;
 		goto out;

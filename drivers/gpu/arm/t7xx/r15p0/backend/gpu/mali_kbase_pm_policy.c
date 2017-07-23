@@ -285,7 +285,7 @@ int kbase_pm_policy_init(struct kbase_device *kbdev)
 	/* MALI_SEC_INTEGRATION */
 	/* alloc_workqueue option is changed to ordered */
 	wq = alloc_workqueue("kbase_pm_do_poweroff",
-			WQ_HIGHPRI | WQ_UNBOUND | __WQ_ORDERED , 1);
+			WQ_HIGHPRI | WQ_UNBOUND | __WQ_ORDERED | WQ_POWER_EFFICIENT, 1);
 	if (!wq)
 		return -ENOMEM;
 
