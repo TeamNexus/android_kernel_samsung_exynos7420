@@ -37,6 +37,7 @@
 #define DECAY 8
 #define MAX_INTERESTING 50000
 
+#define U64_MAX ((u64)~0ULL)
 
 /*
  * Concepts and ideas behind the menu governor

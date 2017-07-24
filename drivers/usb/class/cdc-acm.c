@@ -543,17 +543,18 @@ static int acm_port_activate(struct tty_port *port, struct tty_struct *tty)
 	acm->control->needs_remote_wakeup = 1;
 
 	acm->ctrlurb->dev = acm->dev;
-	retval = usb_submit_urb(acm->ctrlurb, GFP_KERNEL);
-	if (retval) {
+	if (usb_submit_urb(acm->ctrlurb, GFP_KERNEL)) {
 		dev_err(&acm->control->dev,
 			"%s - usb_submit_urb(ctrl irq) failed\n", __func__);
 		goto error_submit_urb;
 	}
 
 	acm->ctrlout = ACM_CTRL_DTR | ACM_CTRL_RTS;
-	retval = acm_set_control(acm, acm->ctrlout);
-	if (retval < 0 && (acm->ctrl_caps & USB_CDC_CAP_LINE))
+	if (acm_set_control(acm, acm->ctrlout) < 0 &&
+	    (acm->ctrl_caps & USB_CDC_CAP_LINE))
 		goto error_set_control;
+
+	usb_autopm_put_interface(acm->control);
 
 	/*
 	 * Unthrottle device in case the TTY was closed while throttled.
@@ -563,11 +564,8 @@ static int acm_port_activate(struct tty_port *port, struct tty_struct *tty)
 	acm->throttle_req = 0;
 	spin_unlock_irq(&acm->read_lock);
 
-	retval = acm_submit_read_urbs(acm, GFP_KERNEL);
-	if (retval)
+	if (acm_submit_read_urbs(acm, GFP_KERNEL))
 		goto error_submit_read_urbs;
-
-	usb_autopm_put_interface(acm->control);
 
 	mutex_unlock(&acm->mutex);
 
@@ -585,8 +583,7 @@ error_submit_urb:
 error_get_interface:
 disconnected:
 	mutex_unlock(&acm->mutex);
-
-	return usb_translate_errors(retval);
+	return retval;
 }
 
 static void acm_port_destruct(struct tty_port *port)
@@ -1113,11 +1110,10 @@ next_desc:
 	} else {
 		control_interface = usb_ifnum_to_if(usb_dev, union_header->bMasterInterface0);
 		data_interface = usb_ifnum_to_if(usb_dev, (data_interface_num = union_header->bSlaveInterface0));
-	}
-
-	if (!control_interface || !data_interface) {
-		dev_dbg(&intf->dev, "no interfaces\n");
-		return -ENODEV;
+		if (!control_interface || !data_interface) {
+			dev_dbg(&intf->dev, "no interfaces\n");
+			return -ENODEV;
+		}
 	}
 
 	if (data_interface_num != call_interface_num)
@@ -1236,6 +1232,7 @@ made_compressed_probe:
 	spin_lock_init(&acm->write_lock);
 	spin_lock_init(&acm->read_lock);
 	mutex_init(&acm->mutex);
+	acm->rx_endpoint = usb_rcvbulkpipe(usb_dev, epread->bEndpointAddress);
 	acm->is_int_ep = usb_endpoint_xfer_int(epread);
 	if (acm->is_int_ep)
 		acm->bInterval = epread->bInterval;
@@ -1284,14 +1281,14 @@ made_compressed_probe:
 		urb->transfer_dma = rb->dma;
 		if (acm->is_int_ep) {
 			usb_fill_int_urb(urb, acm->dev,
-					 usb_rcvintpipe(usb_dev, epread->bEndpointAddress),
+					 acm->rx_endpoint,
 					 rb->base,
 					 acm->readsize,
 					 acm_read_bulk_callback, rb,
 					 acm->bInterval);
 		} else {
 			usb_fill_bulk_urb(urb, acm->dev,
-					  usb_rcvbulkpipe(usb_dev, epread->bEndpointAddress),
+					  acm->rx_endpoint,
 					  rb->base,
 					  acm->readsize,
 					  acm_read_bulk_callback, rb);
@@ -1391,7 +1388,6 @@ alloc_fail8:
 				&dev_attr_wCountryCodes);
 		device_remove_file(&acm->control->dev,
 				&dev_attr_iCountryCodeRelDate);
-		kfree(acm->country_codes);
 	}
 	device_remove_file(&acm->control->dev, &dev_attr_bmCapabilities);
 alloc_fail7:
@@ -1750,16 +1746,6 @@ static const struct usb_device_id acm_ids[] = {
 	.driver_info = IGNORE_DEVICE,
 	},
 #endif
-
-	/*Samsung phone in firmware update mode */
-	{ USB_DEVICE(0x04e8, 0x685d),
-	.driver_info = IGNORE_DEVICE,
-	},
-
-	/* Exclude Infineon Flash Loader utility */
-	{ USB_DEVICE(0x058b, 0x0041),
-	.driver_info = IGNORE_DEVICE,
-	},
 
 	/* control interfaces without any protocol set */
 	{ USB_INTERFACE_INFO(USB_CLASS_COMM, USB_CDC_SUBCLASS_ACM,

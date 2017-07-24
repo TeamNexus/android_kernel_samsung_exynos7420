@@ -16,8 +16,6 @@
 #ifndef __ASM_TIMEX_H
 #define __ASM_TIMEX_H
 
-#include <asm/arch_timer.h>
-
 /*
  * Use the current timer as a cycle counter since this is what we use for
  * the delay loop.

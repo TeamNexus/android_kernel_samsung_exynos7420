@@ -4212,6 +4212,13 @@ tracing_read_pipe(struct file *filp, char __user *ubuf,
 	struct trace_array *tr = iter->tr;
 	ssize_t sret;
 
+	/* return any leftover data */
+	sret = trace_seq_to_user(&iter->seq, ubuf, cnt);
+	if (sret != -EBUSY)
+		return sret;
+
+	trace_seq_init(&iter->seq);
+
 	/* copy the tracer to avoid using a global lock all around */
 	mutex_lock(&trace_types_lock);
 	if (unlikely(iter->trace->name != tr->current_trace->name))
@@ -4224,14 +4231,6 @@ tracing_read_pipe(struct file *filp, char __user *ubuf,
 	 * is protected.
 	 */
 	mutex_lock(&iter->mutex);
-
-	/* return any leftover data */
-	sret = trace_seq_to_user(&iter->seq, ubuf, cnt);
-	if (sret != -EBUSY)
-		goto out;
-
-	trace_seq_init(&iter->seq);
-
 	if (iter->trace->read) {
 		sret = iter->trace->read(iter, filp, ubuf, cnt, ppos);
 		if (sret)
@@ -4443,10 +4442,7 @@ static ssize_t tracing_splice_read_pipe(struct file *filp,
 
 	spd.nr_pages = i;
 
-	if (i)
-		ret = splice_to_pipe(pipe, &spd);
-	else
-		ret = 0;
+	ret = splice_to_pipe(pipe, &spd);
 out:
 	splice_shrink_spd(&spd);
 	return ret;
@@ -4683,7 +4679,7 @@ tracing_mark_write(struct file *filp, const char __user *ubuf,
 	*fpos += written;
 
  out_unlock:
-	for (i = nr_pages - 1; i >= 0; i--) {
+	for (i = 0; i < nr_pages; i++){
 		kunmap_atomic(map_page[i]);
 		put_page(pages[i]);
 	}
@@ -5260,6 +5256,11 @@ tracing_buffers_splice_read(struct file *file, loff_t *ppos,
 	}
 #endif
 
+	if (splice_grow_spd(pipe, &spd)) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
 	if (*ppos & (PAGE_SIZE - 1)) {
 		ret = -EINVAL;
 		goto out;
@@ -5271,11 +5272,6 @@ tracing_buffers_splice_read(struct file *file, loff_t *ppos,
 			goto out;
 		}
 		len &= PAGE_MASK;
-	}
-
-	if (splice_grow_spd(pipe, &spd)) {
-		ret = -ENOMEM;
-		goto out;
 	}
 
  again:
@@ -5333,22 +5329,21 @@ tracing_buffers_splice_read(struct file *file, loff_t *ppos,
 	if (!spd.nr_pages) {
 		if ((file->f_flags & O_NONBLOCK) || (flags & SPLICE_F_NONBLOCK)) {
 			ret = -EAGAIN;
-			goto out_shrink;
+			goto out;
 		}
 		mutex_unlock(&trace_types_lock);
 		ret = iter->trace->wait_pipe(iter);
 		mutex_lock(&trace_types_lock);
 		if (ret)
-			goto out_shrink;
+			goto out;
 		if (signal_pending(current)) {
 			ret = -EINTR;
-			goto out_shrink;
+			goto out;
 		}
 		goto again;
 	}
 
 	ret = splice_to_pipe(pipe, &spd);
-out_shrink:
 	splice_shrink_spd(&spd);
 out:
 	mutex_unlock(&trace_types_lock);
@@ -5559,13 +5554,11 @@ ftrace_trace_snapshot_callback(struct ftrace_hash *hash,
 		return ret;
 
  out_reg:
-	ret = alloc_snapshot(&global_trace);
-	if (ret < 0)
-		goto out;
-
 	ret = register_ftrace_function_probe(glob, ops, count);
 
- out:
+	if (ret >= 0)
+		alloc_snapshot(&global_trace);
+
 	return ret < 0 ? ret : 0;
 }
 
@@ -6161,7 +6154,7 @@ static int instance_mkdir (struct inode *inode, struct dentry *dentry, umode_t m
 	int ret;
 
 	/* Paranoid: Make sure the parent is the "instances" directory */
-	parent = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
+	parent = hlist_entry(inode->i_dentry.first, struct dentry, d_alias);
 	if (WARN_ON_ONCE(parent != trace_instance_dir))
 		return -ENOENT;
 
@@ -6188,7 +6181,7 @@ static int instance_rmdir(struct inode *inode, struct dentry *dentry)
 	int ret;
 
 	/* Paranoid: Make sure the parent is the "instances" directory */
-	parent = hlist_entry(inode->i_dentry.first, struct dentry, d_u.d_alias);
+	parent = hlist_entry(inode->i_dentry.first, struct dentry, d_alias);
 	if (WARN_ON_ONCE(parent != trace_instance_dir))
 		return -ENOENT;
 

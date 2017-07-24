@@ -180,6 +180,8 @@ static int is_full_zero(const void *s1, size_t len)
 }
 #endif
 
+#define U64_MAX ((u64)~0ULL)
+
 #define UKSM_RUNG_ROUND_FINISHED  (1 << 0)
 #define TIME_RATIO_SCALE	10000
 

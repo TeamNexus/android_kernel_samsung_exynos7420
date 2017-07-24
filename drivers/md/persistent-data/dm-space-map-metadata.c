@@ -493,9 +493,7 @@ static int sm_bootstrap_get_nr_blocks(struct dm_space_map *sm, dm_block_t *count
 {
 	struct sm_metadata *smm = container_of(sm, struct sm_metadata, sm);
 
-	*count = smm->ll.nr_blocks;
-
-	return 0;
+	return smm->ll.nr_blocks;
 }
 
 static int sm_bootstrap_get_nr_free(struct dm_space_map *sm, dm_block_t *count)
@@ -679,12 +677,14 @@ int dm_sm_metadata_create(struct dm_space_map *sm,
 	memcpy(&smm->sm, &bootstrap_ops, sizeof(smm->sm));
 
 	r = sm_ll_new_metadata(&smm->ll, tm);
-	if (!r) {
-		r = sm_ll_extend(&smm->ll, nr_blocks);
-	}
-	memcpy(&smm->sm, &ops, sizeof(smm->sm));
 	if (r)
 		return r;
+
+	r = sm_ll_extend(&smm->ll, nr_blocks);
+	if (r)
+		return r;
+
+	memcpy(&smm->sm, &ops, sizeof(smm->sm));
 
 	/*
 	 * Now we need to update the newly created data structures with the

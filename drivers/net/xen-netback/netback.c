@@ -454,17 +454,17 @@ static struct netbk_rx_meta *get_next_rx_buffer(struct xenvif *vif,
 						struct netrx_pending_operations *npo)
 {
 	struct netbk_rx_meta *meta;
-	struct xen_netif_rx_request req;
+	struct xen_netif_rx_request *req;
 
-	RING_COPY_REQUEST(&vif->rx, vif->rx.req_cons++, &req);
+	req = RING_GET_REQUEST(&vif->rx, vif->rx.req_cons++);
 
 	meta = npo->meta + npo->meta_prod++;
 	meta->gso_size = 0;
 	meta->size = 0;
-	meta->id = req.id;
+	meta->id = req->id;
 
 	npo->copy_off = 0;
-	npo->copy_gref = req.gref;
+	npo->copy_gref = req->gref;
 
 	return meta;
 }
@@ -582,7 +582,7 @@ static int netbk_gop_skb(struct sk_buff *skb,
 	struct xenvif *vif = netdev_priv(skb->dev);
 	int nr_frags = skb_shinfo(skb)->nr_frags;
 	int i;
-	struct xen_netif_rx_request req;
+	struct xen_netif_rx_request *req;
 	struct netbk_rx_meta *meta;
 	unsigned char *data;
 	int head = 1;
@@ -592,14 +592,14 @@ static int netbk_gop_skb(struct sk_buff *skb,
 
 	/* Set up a GSO prefix descriptor, if necessary */
 	if (skb_shinfo(skb)->gso_size && vif->gso_prefix) {
-		RING_COPY_REQUEST(&vif->rx, vif->rx.req_cons++, &req);
+		req = RING_GET_REQUEST(&vif->rx, vif->rx.req_cons++);
 		meta = npo->meta + npo->meta_prod++;
 		meta->gso_size = skb_shinfo(skb)->gso_size;
 		meta->size = 0;
-		meta->id = req.id;
+		meta->id = req->id;
 	}
 
-	RING_COPY_REQUEST(&vif->rx, vif->rx.req_cons++, &req);
+	req = RING_GET_REQUEST(&vif->rx, vif->rx.req_cons++);
 	meta = npo->meta + npo->meta_prod++;
 
 	if (!vif->gso_prefix)
@@ -608,9 +608,9 @@ static int netbk_gop_skb(struct sk_buff *skb,
 		meta->gso_size = 0;
 
 	meta->size = 0;
-	meta->id = req.id;
+	meta->id = req->id;
 	npo->copy_off = 0;
-	npo->copy_gref = req.gref;
+	npo->copy_gref = req->gref;
 
 	data = skb->data;
 	while (data < skb_tail_pointer(skb)) {
@@ -814,7 +814,6 @@ static void xen_netbk_rx_action(struct xen_netbk *netbk)
 			xenvif_put(vif);
 		npo.meta_cons += sco->meta_slots_used;
 		dev_kfree_skb(skb);
-		xenvif_put_rings(vif);
 	}
 
 	list_for_each_entry_safe(vif, tmp, &notify, notify_list) {
@@ -928,7 +927,9 @@ static void tx_add_credit(struct xenvif *vif)
 	 * Allow a burst big enough to transmit a jumbo packet of up to 128kB.
 	 * Otherwise the interface can seize up due to insufficient credit.
 	 */
-	max_burst = max(131072UL, vif->credit_bytes);
+	max_burst = RING_GET_REQUEST(&vif->tx, vif->tx.req_cons)->size;
+	max_burst = min(max_burst, 131072UL);
+	max_burst = max(max_burst, vif->credit_bytes);
 
 	/* Take care that adding a new chunk of credit doesn't wrap to zero. */
 	max_credit = vif->remaining_credit + vif->credit_bytes;
@@ -954,7 +955,7 @@ static void netbk_tx_err(struct xenvif *vif,
 		make_tx_response(vif, txp, XEN_NETIF_RSP_ERROR);
 		if (cons == end)
 			break;
-		RING_COPY_REQUEST(&vif->tx, cons++, txp);
+		txp = RING_GET_REQUEST(&vif->tx, cons++);
 	} while (1);
 	vif->tx.req_cons = cons;
 	xen_netbk_check_rx_xenvif(vif);
@@ -1021,7 +1022,8 @@ static int netbk_count_requests(struct xenvif *vif,
 		if (drop_err)
 			txp = &dropped_tx;
 
-		RING_COPY_REQUEST(&vif->tx, cons + slots, txp);
+		memcpy(txp, RING_GET_REQUEST(&vif->tx, cons + slots),
+		       sizeof(*txp));
 
 		/* If the guest submitted a frame >= 64 KiB then
 		 * first->size overflowed and following slots will
@@ -1309,7 +1311,8 @@ static int xen_netbk_get_extras(struct xenvif *vif,
 			return -EBADR;
 		}
 
-		RING_COPY_REQUEST(&vif->tx, cons, &extra);
+		memcpy(&extra, RING_GET_REQUEST(&vif->tx, cons),
+		       sizeof(extra));
 		if (unlikely(!extra.type ||
 			     extra.type >= XEN_NETIF_EXTRA_TYPE_MAX)) {
 			vif->tx.req_cons = ++cons;
@@ -1499,7 +1502,7 @@ static unsigned xen_netbk_tx_build_gops(struct xen_netbk *netbk)
 
 		idx = vif->tx.req_cons;
 		rmb(); /* Ensure that we see the request before we copy it. */
-		RING_COPY_REQUEST(&vif->tx, idx, &txreq);
+		memcpy(&txreq, RING_GET_REQUEST(&vif->tx, idx), sizeof(txreq));
 
 		/* Credit-based scheduling. */
 		if (txreq.size > vif->remaining_credit &&
@@ -1861,9 +1864,6 @@ static int xen_netbk_kthread(void *data)
 
 void xen_netbk_unmap_frontend_rings(struct xenvif *vif)
 {
-	atomic_dec(&vif->ring_refcnt);
-	wait_event(vif->waiting_to_unmap, atomic_read(&vif->ring_refcnt) == 0);
-
 	if (vif->tx.sring)
 		xenbus_unmap_ring_vfree(xenvif_to_xenbus_device(vif),
 					vif->tx.sring);
@@ -1881,8 +1881,6 @@ int xen_netbk_map_frontend_rings(struct xenvif *vif,
 	struct xen_netif_rx_sring *rxs;
 
 	int err = -ENOMEM;
-
-	atomic_set(&vif->ring_refcnt, 1);
 
 	err = xenbus_map_ring_valloc(xenvif_to_xenbus_device(vif),
 				     tx_ring_ref, &addr);
