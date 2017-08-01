@@ -743,6 +743,29 @@ static void max77833_set_charge_current(struct max77833_charger_data *charger,
 {
 	int curr_step = 50;
 	u8 reg_data;
+#if defined(CONFIG_BATTERY_SWELLING)
+	union power_supply_propval swelling_state;
+
+	psy_do_property("battery", get,
+			POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
+			swelling_state);
+	if (charger->is_charging && swelling_state.intval) {
+		int swelling_charging_current;
+		if (charger->cable_type == POWER_SUPPLY_TYPE_WIRELESS ||
+			charger->cable_type == POWER_SUPPLY_TYPE_HV_WIRELESS ||
+			charger->cable_type == POWER_SUPPLY_TYPE_PMA_WIRELESS) {
+			swelling_charging_current = charger->pdata->swelling_wc_chg_current;
+		} else {
+			swelling_charging_current = charger->pdata->swelling_chg_current;
+		}
+
+		if (fast_charging_current > swelling_charging_current) {
+			fast_charging_current = swelling_charging_current;
+			pr_info("swelling_state = %d, changed current = %d\n",
+				swelling_state.intval, fast_charging_current);
+		}
+	}
+#endif
 
 	max77833_read_reg(charger->i2c,
 			  MAX77833_CHG_REG_CNFG_05, &reg_data);
@@ -2643,6 +2666,22 @@ static int max77833_charger_parse_dt(struct max77833_charger_data *charger)
 				 "battery,full_check_current_2nd", i,
 				 &pdata->charging_current[i].full_check_current_2nd);
 		}
+
+#if defined(CONFIG_BATTERY_SWELLING)
+		ret = of_property_read_u32(np, "battery,swelling_chg_current",
+				   &pdata->swelling_chg_current);
+		if (ret) {
+			pr_info("%s: swelling chg current is Empty. forced set to 1000mA.\n", __func__);
+			pdata->swelling_chg_current = 1000;
+		}
+
+		ret = of_property_read_u32(np, "battery,swelling_wc_chg_current",
+			&pdata->swelling_wc_chg_current);
+		if (ret) {
+			pr_info("%s: swelling wc chg current is Empty. forced set to 600mA.\n", __func__);
+			pdata->swelling_wc_chg_current = 600;
+		}
+#endif
 	}
 	return ret;
 }

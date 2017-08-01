@@ -844,6 +844,9 @@ struct sec_charger_platform_data {
 	int siop_hv_wireless_input_limit_current;
 	int siop_hv_wireless_charging_limit_current;
 
+	int swelling_chg_current;
+	int swelling_wc_chg_current;
+
 #if defined(CONFIG_WIRELESS_CHARGER_INBATTERY)
 		bool wpc_delayed_current_en;
 		unsigned int wpc_delayed_current;
