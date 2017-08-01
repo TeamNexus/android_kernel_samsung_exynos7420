@@ -148,28 +148,36 @@ static void ion_carveout_heap_free(struct ion_buffer *buffer)
 	struct page *page = sg_page(table->sgl);
 	ion_phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
 
+	if (!(buffer->flags & ION_FLAG_PROTECTED)) {
+		void *va = page_address(page);
+
 #ifdef CONFIG_ARM64
-	if (ion_buffer_cached(buffer)) {
-		if (ion_buffer_need_flush_all(buffer))
-			flush_all_cpu_caches();
-		else
-			__flush_dcache_area(page_address(page), buffer->size);
-	}
+		if (ion_buffer_cached(buffer)) {
+			memset(va, 0, buffer->size);
+			if (ion_buffer_need_flush_all(buffer))
+				flush_all_cpu_caches();
+			else
+				__flush_dcache_area(va, buffer->size);
+		} else {
+			ion_heap_buffer_zero(buffer);
+		}
 #else
-	if (ion_buffer_cached(buffer)) {
-		if (ion_buffer_need_flush_all(buffer))
-			flush_all_cpu_caches();
-		else
-			dmac_flush_range(page_address(page), buffer->size,
-							DMA_BIDIRECTIONAL);
-	}
+		if (ion_buffer_cached(buffer)) {
+			memset(va, 0, buffer->size);
+			if (ion_buffer_need_flush_all(buffer))
+				flush_all_cpu_caches();
+			else
+				dmac_flush_range(va, buffer->size, DMA_BIDIRECTIONAL);
+		} else {
+			ion_heap_buffer_zero(buffer);
+		}
 #endif
+	} else {
+		ion_secure_unprotect(heap);
+	}
 	ion_carveout_free(heap, paddr, buffer->size);
 	sg_free_table(table);
 	kfree(table);
-
-	if (buffer->flags & ION_FLAG_PROTECTED)
-		ion_secure_unprotect(heap);
 }
 
 static struct sg_table *ion_carveout_heap_map_dma(struct ion_heap *heap,
