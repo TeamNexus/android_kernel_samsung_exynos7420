@@ -42,6 +42,14 @@ extern struct static_key __sched_energy_freq;
 	do { } while(0)
 #endif
 
+#define CPUGOV_NEXUS_FREQ_REVALIDATE(_name)                                                                      \
+	if (unlikely(tunables->_name##_do_revalidate)) {                                                             \
+		freq_debug = tunables->_name;                                                                            \
+		tunables->_name = choose_frequency(cpuinfo, &index, tunables->_name);                                    \
+		tunables->_name##_do_revalidate = 0;                                                                     \
+		nexus_debug("%s: cpu%d: revalidated " _name ": %u -> %u\n", __func__, cpu, freq_debug, tunables->_name); \
+	}
+
 struct cpufreq_nexus_cpuinfo {
 	int init;
 	int init_finished;
@@ -81,7 +89,7 @@ struct cpufreq_nexus_tunables {
 	unsigned int down_step;
 
 	// load at which the cpugov decides to scale up
-	#define DEFAULT_UP_LOAD 50
+	#define DEFAULT_UP_LOAD 60
 	unsigned int up_load;
 
 	// delay in timer-ticks to scale up CPU
@@ -93,7 +101,7 @@ struct cpufreq_nexus_tunables {
 	unsigned int up_step;
 
 	// interval of the scaling-timer
-	#define DEFAULT_TIMER_RATE 15000
+	#define DEFAULT_TIMER_RATE 5000
 	unsigned int timer_rate;
 
 	// interval of the scaling-timer. set default to 1 on your own risk
@@ -147,15 +155,15 @@ struct cpufreq_nexus_tunables {
 	int hispeed_freq_do_revalidate;
 
 	// load which is used to determine if cpugov should exceed hispeed-frequency
-	#define DEFAULT_HISPEED_LOAD 100
+	#define DEFAULT_HISPEED_LOAD 75
 	unsigned int hispeed_load;
 
-	// delay in ticks after which th hispeed-exceeding is revalidated
-	#define DEFAULT_HISPEED_DELAY 1
+	// delay in ticks after which the hispeed-exceeding is revalidated
+	#define DEFAULT_HISPEED_DELAY 2
 	unsigned int hispeed_delay;
 
 	// indicates if hispeed-revalidation should work as power-efficient as possible
-	#define DEFAULT_HISPEED_POWER_EFFICIENT 0
+	#define DEFAULT_HISPEED_POWER_EFFICIENT 1
 	unsigned int hispeed_power_efficient;
 };
 
@@ -183,7 +191,7 @@ static unsigned int choose_frequency(struct cpufreq_nexus_cpuinfo *cpuinfo, int 
 static void __cpufreq_nexus_timer(struct cpufreq_nexus_cpuinfo *cpuinfo)
 {
 	unsigned int ktime_now = ktime_to_us(ktime_get());
-		
+
 	struct cpufreq_policy *policy;
 	struct cpufreq_nexus_tunables *tunables;
 
@@ -230,36 +238,10 @@ static void __cpufreq_nexus_timer(struct cpufreq_nexus_cpuinfo *cpuinfo)
 	}
 
 	// revalidate custom frequencies
-	// -----
-	// we don't have to care about concurrency as this isn't a
-	// life-devastating routine if it is executed twice on different cores
-	if (unlikely(tunables->freq_min_do_revalidate)) {
-		freq_debug = tunables->freq_min;
-		tunables->freq_min = choose_frequency(cpuinfo, &index, tunables->freq_min);
-		tunables->freq_min_do_revalidate = 0;
-		nexus_debug("%s: cpu%d: revalidated freq_min: %u -> %u\n", __func__, cpu, freq_debug, tunables->freq_min);
-	}
-
-	if (unlikely(tunables->freq_max_do_revalidate)) {
-		freq_debug = tunables->freq_max;
-		tunables->freq_max = choose_frequency(cpuinfo, &index, tunables->freq_max);
-		tunables->freq_max_do_revalidate = 0;
-		nexus_debug("%s: cpu%d: revalidated freq_max: %u -> %u\n", __func__, cpu, freq_debug, tunables->freq_max);
-	}
-
-	if (unlikely(tunables->boost_freq_do_revalidate)) {
-		freq_debug = tunables->boost_freq;
-		tunables->boost_freq = choose_frequency(cpuinfo, &index, tunables->boost_freq);
-		tunables->boost_freq_do_revalidate = 0;
-		nexus_debug("%s: cpu%d: revalidated boost_freq: %u -> %u\n", __func__, cpu, freq_debug, tunables->boost_freq);
-	}
-
-	if (unlikely(tunables->hispeed_freq_do_revalidate && tunables->hispeed_freq != 0)) {
-		freq_debug = tunables->hispeed_freq;
-		tunables->hispeed_freq = choose_frequency(cpuinfo, &index, tunables->hispeed_freq);
-		tunables->hispeed_freq_do_revalidate = 0;
-		nexus_debug("%s: cpu%d: revalidated hispeed_freq: %u -> %u\n", __func__, cpu, freq_debug, tunables->hispeed_freq);
-	}
+	CPUGOV_NEXUS_FREQ_REVALIDATE(freq_min)
+	CPUGOV_NEXUS_FREQ_REVALIDATE(freq_max)
+	CPUGOV_NEXUS_FREQ_REVALIDATE(boost_freq)
+	CPUGOV_NEXUS_FREQ_REVALIDATE(hispeed_freq)
 
 	// calculate frequencies
 	nexus_debug("%s: cpu%d: init = %u\n", __func__, cpu, policy->cur);
@@ -386,7 +368,7 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 
 	if (unlikely(!cpuinfo || !cpuinfo->init_finished))
 		return;
-	
+
 	__cpufreq_nexus_timer(cpuinfo);
 }
 
