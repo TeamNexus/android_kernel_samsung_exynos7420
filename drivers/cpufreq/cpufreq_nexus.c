@@ -26,10 +26,13 @@
 
 #include "cpufreq_governor.h"
 
-#define CPUGOV_NEXUS_DEBUG 0
+#define CPUGOV_NEXUS_DEBUG				0
+#define CPUGOV_NEXUS_SCHED_NOTIFIER		0
 
 static struct cpufreq_nexus_tunables *global_tunables = NULL;
 static DEFINE_MUTEX(cpufreq_governor_nexus_mutex);
+
+extern struct static_key __sched_energy_freq;
 
 #if CPUGOV_NEXUS_DEBUG
 #define nexus_debug(format, ...) \
@@ -41,6 +44,9 @@ static DEFINE_MUTEX(cpufreq_governor_nexus_mutex);
 
 struct cpufreq_nexus_cpuinfo {
 	int init;
+	int init_finished;
+
+	int work_initalized;
 
 	int cpu;
 	struct cpufreq_policy *policy;
@@ -56,7 +62,9 @@ struct cpufreq_nexus_cpuinfo {
 	unsigned int hispeed_delay_counter;
 
 	struct delayed_work work;
+
 	struct mutex timer_mutex;
+	struct mutex sched_notify_mutex;
 };
 
 struct cpufreq_nexus_tunables {
@@ -87,6 +95,10 @@ struct cpufreq_nexus_tunables {
 	// interval of the scaling-timer
 	#define DEFAULT_TIMER_RATE 15000
 	unsigned int timer_rate;
+
+	// interval of the scaling-timer. set default to 1 on your own risk
+	#define DEFAULT_TIMER_SCHED_NOTIFIER 0
+	unsigned int timer_sched_notifier;
 
 	// indicates if I/O-time should be added to cputime
 	#define DEFAULT_IO_IS_BUSY 1
@@ -168,40 +180,39 @@ static unsigned int choose_frequency(struct cpufreq_nexus_cpuinfo *cpuinfo, int 
 	return cpuinfo->freq_table[*index].frequency;
 }
 
-static void cpufreq_nexus_timer(struct work_struct *work)
+static void __cpufreq_nexus_timer(struct cpufreq_nexus_cpuinfo *cpuinfo)
 {
 	unsigned int ktime_now = ktime_to_us(ktime_get());
-	struct cpufreq_nexus_cpuinfo *cpuinfo;
+		
 	struct cpufreq_policy *policy;
 	struct cpufreq_nexus_tunables *tunables;
+
 	int delay = 0,
 	    real_delay = 0,
 	    cpu = 0,
 	    load = 0,
 	    freq_signed = 0;
+
 	unsigned int index = 0,
 	             freq = 0,
 	             freq_next = 0;
+
 	cputime64_t curr_idle, curr_wall, idle, wall;
 
 	int load_debug = 0;
 	unsigned int freq_debug = 0;
 
-	cpuinfo = container_of(work, struct cpufreq_nexus_cpuinfo, work.work);
-	if (!cpuinfo)
-		return;
-
 	policy = cpuinfo->policy;
-	if (!policy)
+	if (unlikely(!policy))
 		return;
 
 	tunables = policy->governor_data;
 	cpu = cpuinfo->cpu;
 
-	if (mutex_lock_interruptible(&cpuinfo->timer_mutex))
+	if (unlikely(mutex_lock_interruptible(&cpuinfo->timer_mutex)))
 		return;
 
-	if (!cpu_online(cpu))
+	if (unlikely(!cpu_online(cpu)))
 		goto exit;
 
 	// calculate new load
@@ -212,7 +223,7 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 	cpuinfo->prev_idle = curr_idle;
 	cpuinfo->prev_wall = curr_wall;
 
-	if (cpuinfo->init) {
+	if (unlikely(cpuinfo->init)) {
 		// apply the current cputimes and skip this sample
 		cpuinfo->init = 0;
 		goto requeue;
@@ -222,28 +233,28 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 	// -----
 	// we don't have to care about concurrency as this isn't a
 	// life-devastating routine if it is executed twice on different cores
-	if (tunables->freq_min_do_revalidate) {
+	if (unlikely(tunables->freq_min_do_revalidate)) {
 		freq_debug = tunables->freq_min;
 		tunables->freq_min = choose_frequency(cpuinfo, &index, tunables->freq_min);
 		tunables->freq_min_do_revalidate = 0;
 		nexus_debug("%s: cpu%d: revalidated freq_min: %u -> %u\n", __func__, cpu, freq_debug, tunables->freq_min);
 	}
 
-	if (tunables->freq_max_do_revalidate) {
+	if (unlikely(tunables->freq_max_do_revalidate)) {
 		freq_debug = tunables->freq_max;
 		tunables->freq_max = choose_frequency(cpuinfo, &index, tunables->freq_max);
 		tunables->freq_max_do_revalidate = 0;
 		nexus_debug("%s: cpu%d: revalidated freq_max: %u -> %u\n", __func__, cpu, freq_debug, tunables->freq_max);
 	}
 
-	if (tunables->boost_freq_do_revalidate) {
+	if (unlikely(tunables->boost_freq_do_revalidate)) {
 		freq_debug = tunables->boost_freq;
 		tunables->boost_freq = choose_frequency(cpuinfo, &index, tunables->boost_freq);
 		tunables->boost_freq_do_revalidate = 0;
 		nexus_debug("%s: cpu%d: revalidated boost_freq: %u -> %u\n", __func__, cpu, freq_debug, tunables->boost_freq);
 	}
 
-	if (tunables->hispeed_freq_do_revalidate && tunables->hispeed_freq != 0) {
+	if (unlikely(tunables->hispeed_freq_do_revalidate && tunables->hispeed_freq != 0)) {
 		freq_debug = tunables->hispeed_freq;
 		tunables->hispeed_freq = choose_frequency(cpuinfo, &index, tunables->hispeed_freq);
 		tunables->hispeed_freq_do_revalidate = 0;
@@ -254,16 +265,16 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 	nexus_debug("%s: cpu%d: init = %u\n", __func__, cpu, policy->cur);
 	freq = policy->cur;
 
-	if (wall >= idle) {
+	if (unlikely(wall >= idle)) {
 		load = (100 * (wall - idle)) / wall;
 		load_debug = load;
 
-		if (tunables->boost || ktime_now < tunables->boostpulse_end) {
+		if (unlikely(tunables->boost || ktime_now < tunables->boostpulse_end)) {
 			nexus_debug("%s: cpu%d: boost = %u\n", __func__, cpu, tunables->boost_freq);
 			freq = tunables->boost_freq;
 		} else {
 			if (load >= tunables->up_load) {
-				if (tunables->up_delay == 0 || cpuinfo->up_delay_counter >= tunables->up_delay) {
+				if (tunables->timer_sched_notifier || tunables->up_delay == 0 || cpuinfo->up_delay_counter >= tunables->up_delay) {
 					freq_signed = (int)freq + ((int)tunables->up_step * (int)tunables->frequency_step);
 					nexus_debug("%s: cpu%d: up-scaling       = %d\n", __func__, cpu, freq_signed);
 
@@ -279,7 +290,7 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 				}
 				cpuinfo->down_delay_counter = 0;
 			} else if (load <= tunables->down_load) {
-				if (tunables->down_delay == 0 || cpuinfo->down_delay_counter >= tunables->down_delay) {
+				if (tunables->timer_sched_notifier || tunables->down_delay == 0 || cpuinfo->down_delay_counter >= tunables->down_delay) {
 					freq_signed = (int)freq - ((int)tunables->down_step * (int)tunables->frequency_step);
 					nexus_debug("%s: cpu%d: down-scaling       = %d\n", __func__, cpu, freq_signed);
 
@@ -325,7 +336,7 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 				nexus_debug("%s: cpu%d: frequency %u is lower than allowed! scaling to %u\n", __func__, cpu, freq_debug, freq);
 			}
 
-			if (freq > tunables->freq_max){
+			if (freq > tunables->freq_max) {
 				freq_debug = freq;
 				freq = min(policy->max, tunables->freq_max);
 				nexus_debug("%s: cpu%d: frequency %u is higher than allowed! scaling to %u\n", __func__, cpu, freq_debug, freq);
@@ -333,7 +344,7 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 		}
 
 		// check if the policy is very unresponsive and reset it if that's the case
-		if (cpuinfo->last_tick_time + tunables->reset_stuck_timespan <= ktime_now) {
+		if (unlikely(cpuinfo->last_tick_time + tunables->reset_stuck_timespan <= ktime_now)) {
 			freq = max(policy->min, tunables->freq_min);
 			nexus_debug("%s: cpu%d: resetting policy because of reaching reset_stuck_timespan\n", __func__, cpu);
 		}
@@ -349,17 +360,67 @@ static void cpufreq_nexus_timer(struct work_struct *work)
 
 	// requeue work-timer
 requeue:
-	delay = usecs_to_jiffies(tunables->timer_rate < 1000 ? 1000 : tunables->timer_rate);
-	real_delay = delay;
-	if (num_online_cpus() > 1) {
-		delay -= jiffies % delay;
-	}
+	if (!tunables->timer_sched_notifier) {
+		delay = usecs_to_jiffies(tunables->timer_rate < 1000 ? 1000 : tunables->timer_rate);
+		real_delay = delay;
+		if (likely(num_online_cpus() > 1)) {
+			delay -= jiffies % delay;
+		}
 
+		queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
+	}
 	cpuinfo->last_tick_time = ktime_now;
-	queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
 
 exit:
 	mutex_unlock(&cpuinfo->timer_mutex);
+
+	if (tunables->timer_sched_notifier) {
+		mutex_unlock(&cpuinfo->sched_notify_mutex);
+	}
+}
+
+static void cpufreq_nexus_timer(struct work_struct *work)
+{
+	struct cpufreq_nexus_cpuinfo *cpuinfo
+		= container_of(work, struct cpufreq_nexus_cpuinfo, work.work);
+
+	if (unlikely(!cpuinfo || !cpuinfo->init_finished))
+		return;
+	
+	__cpufreq_nexus_timer(cpuinfo);
+}
+
+/**
+ * cpufreq_nexus_sched_notify - interface to scheduler for load change updates
+ *
+ * cpufreq_nexus_sched_notify is a connection to the work-scheduler and called
+ * when the load may be changed by e.g. a new job etc.
+ *
+ * This interface is patched into the default cpufreq_sched-interface:
+ *		kernel/sched/sched.h:1316-1343
+ */
+void cpufreq_nexus_sched_notify(int cpu)
+{
+	struct cpufreq_nexus_tunables *tunables;
+	struct cpufreq_nexus_cpuinfo *cpuinfo
+		= &per_cpu(gov_cpuinfo, cpu);
+
+	if (unlikely(!cpuinfo || !cpuinfo->init_finished))
+		return;
+
+	if (mutex_trylock(&cpuinfo->sched_notify_mutex)) {
+		tunables = (struct cpufreq_nexus_tunables *)cpuinfo->policy->governor_data;
+		if (!tunables->timer_sched_notifier)
+			return;
+
+		nexus_debug("%s: cpu%d: notified from scheduler, adding work\n", __func__, cpu);
+
+		// use a single-delayed work to call cpugov-timer
+		queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, 1);
+
+		// NEVER call __cpufreq_nexus_timer directly as
+		// this may lead to a full system-halt
+	}
 }
 
 #define gov_show_store(_name) \
@@ -430,11 +491,15 @@ static ssize_t store_##_name##_gov_sys                                        \
 	return store_##_name(global_tunables, buf, count);                      \
 }
 
-#define gov_pol_store(_name)                                                                    \
-static ssize_t store_##_name##_gov_pol                                                          \
-(struct cpufreq_policy *policy, const char *buf, size_t count)                                  \
-{                                                                                               \
-	return store_##_name((struct cpufreq_nexus_tunables *)policy->governor_data, buf, count); \
+#define gov_pol_store(_name)                                                                       \
+static ssize_t store_##_name##_gov_pol                                                             \
+(struct cpufreq_policy *policy, const char *buf, size_t count)                                     \
+{                                                                                                  \
+	ssize_t new_count;                                                                             \
+	mutex_lock(&cpufreq_governor_nexus_mutex);                                                     \
+	new_count = store_##_name((struct cpufreq_nexus_tunables *)policy->governor_data, buf, count); \
+	mutex_unlock(&cpufreq_governor_nexus_mutex);                                                   \
+	return new_count;                                                                              \
 }
 
 static ssize_t show_freq_min(struct cpufreq_nexus_tunables *tunables, char *buf)
@@ -515,6 +580,23 @@ static ssize_t store_boostpulse(struct cpufreq_nexus_tunables *tunables, const c
 	return count;
 }
 
+// BEGIN show_policy
+static ssize_t show_policy_debug(struct cpufreq_policy *policy, char *buf)
+{
+	int work_cpu, policy_cpus = 0;
+
+	for_each_cpu(work_cpu, policy->cpus) {
+		policy_cpus |= (1 << work_cpu);
+	}
+
+	return sprintf(buf, "policy CPUs:\t%d\n", policy_cpus);
+}
+
+static struct freq_attr policy_debug_gov_pol =
+	__ATTR(policy_debug, 0444, show_policy_debug, NULL);
+
+// END show_policy
+
 gov_show_store(down_load);
 gov_show_store(down_delay);
 gov_show_store(down_step);
@@ -522,6 +604,7 @@ gov_show_store(up_load);
 gov_show_store(up_delay);
 gov_show_store(up_step);
 gov_show_store(timer_rate);
+gov_show_store(timer_sched_notifier);
 gov_show_store(io_is_busy);
 gov_show_store(boost);
 gov_show_store(boostpulse_duration);
@@ -539,6 +622,7 @@ gov_sys_pol_show_store(up_load);
 gov_sys_pol_show_store(up_delay);
 gov_sys_pol_show_store(up_step);
 gov_sys_pol_show_store(timer_rate);
+gov_sys_pol_show_store(timer_sched_notifier);
 gov_sys_pol_show_store(io_is_busy);
 gov_sys_pol_show_store(freq_min);
 gov_sys_pol_show_store(freq_max);
@@ -562,6 +646,7 @@ static struct attribute *attributes_gov_sys[] = {
 	&up_delay_gov_sys.attr,
 	&up_step_gov_sys.attr,
 	&timer_rate_gov_sys.attr,
+	&timer_sched_notifier_gov_sys.attr,
 	&io_is_busy_gov_sys.attr,
 	&freq_min_gov_sys.attr,
 	&freq_max_gov_sys.attr,
@@ -585,6 +670,7 @@ static struct attribute_group attribute_group_gov_sys = {
 };
 
 static struct attribute *attributes_gov_pol[] = {
+	&policy_debug_gov_pol.attr,
 	&down_load_gov_pol.attr,
 	&down_delay_gov_pol.attr,
 	&down_step_gov_pol.attr,
@@ -592,6 +678,7 @@ static struct attribute *attributes_gov_pol[] = {
 	&up_delay_gov_pol.attr,
 	&up_step_gov_pol.attr,
 	&timer_rate_gov_pol.attr,
+	&timer_sched_notifier_gov_pol.attr,
 	&io_is_busy_gov_pol.attr,
 	&freq_min_gov_pol.attr,
 	&freq_max_gov_pol.attr,
@@ -652,6 +739,7 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 			tunables->up_delay = DEFAULT_UP_DELAY;
 			tunables->up_step = DEFAULT_UP_STEP;
 			tunables->timer_rate = DEFAULT_TIMER_RATE;
+			tunables->timer_sched_notifier = DEFAULT_TIMER_SCHED_NOTIFIER;
 			tunables->io_is_busy = DEFAULT_IO_IS_BUSY;
 			tunables->freq_min = policy->min;
 			tunables->freq_max = policy->max;
@@ -677,6 +765,8 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 
 			policy->governor_data = tunables;
 
+			static_key_slow_dec(&__sched_energy_freq);
+
 			mutex_unlock(&cpufreq_governor_nexus_mutex);
 
 			break;
@@ -691,6 +781,8 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 
 			if (tunables)
 				kfree(tunables);
+
+			static_key_slow_inc(&__sched_energy_freq);
 
 			mutex_unlock(&cpufreq_governor_nexus_mutex);
 
@@ -711,17 +803,23 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 				cpuinfo->cpu = work_cpu;
 				cpuinfo->freq_table = cpufreq_frequency_get_table(cpu);
 				cpuinfo->policy = policy;
-				cpuinfo->init = 1;
+				cpuinfo->work_initalized = 0;
 
 				mutex_init(&cpuinfo->timer_mutex);
-
-				delay = usecs_to_jiffies(tunables->timer_rate);
-				if (num_online_cpus() > 1) {
-					delay -= jiffies % delay;
-				}
+				mutex_init(&cpuinfo->sched_notify_mutex);
 
 				INIT_DEFERRABLE_WORK(&cpuinfo->work, cpufreq_nexus_timer);
-				queue_delayed_work_on(work_cpu, system_wq, &cpuinfo->work, delay);
+				if (!tunables->timer_sched_notifier) {
+					delay = usecs_to_jiffies(tunables->timer_rate);
+					if (num_online_cpus() > 1) {
+						delay -= jiffies % delay;
+					}
+
+					queue_delayed_work_on(work_cpu, system_wq, &cpuinfo->work, delay);
+				}
+
+				cpuinfo->work_initalized = 1;
+				cpuinfo->init_finished = 1;
 
 			};
 
@@ -732,14 +830,22 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 		case CPUFREQ_GOV_STOP:
 			nexus_debug("%s: received CPUFREQ_GOV_STOP for cpu%d\n", __func__, cpu);
 
+			mutex_lock(&cpufreq_governor_nexus_mutex);
+
 			for_each_cpu(work_cpu, policy->cpus) {
 
 				cpuinfo = &per_cpu(gov_cpuinfo, work_cpu);
 				tunables = policy->governor_data;
 
-				cancel_delayed_work_sync(&cpuinfo->work);
+				if (cpuinfo->work_initalized) {
+					cancel_delayed_work_sync(&cpuinfo->work);
+				}
 
+				cpuinfo->work_initalized = 0;
+				cpuinfo->init_finished = 0;
 			}
+
+			mutex_unlock(&cpufreq_governor_nexus_mutex);
 
 			break;
 

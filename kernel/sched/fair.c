@@ -4096,7 +4096,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 			req_cap = req_cap * sysctl_sched_capacity_margin
 					>> SCHED_CAPACITY_SHIFT;
-			cpufreq_sched_set_cap(cpu_of(rq), req_cap);
+			__cpufreq_set_cap(cpu_of(rq), req_cap);
 		}
 	}
 	hrtick_update(rq);
@@ -4179,9 +4179,9 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 			if (rq->cfs.nr_running) {
 				req_cap = req_cap * sysctl_sched_capacity_margin
 						>> SCHED_CAPACITY_SHIFT;
-				cpufreq_sched_set_cap(cpu_of(rq), req_cap);
+				__cpufreq_set_cap(cpu_of(rq), req_cap);
 			} else {
-				cpufreq_sched_reset_cap(cpu_of(rq));
+				__cpufreq_reset_cap(cpu_of(rq));
 			}
 		}
 	}
@@ -7927,7 +7927,7 @@ more_balance:
 
 			req_cap = req_cap * sysctl_sched_capacity_margin
 					>> SCHED_CAPACITY_SHIFT;
-			cpufreq_sched_set_cap(env.src_cpu, req_cap);
+			__cpufreq_set_cap(env.src_cpu, req_cap);
 		}
 
 		/*
@@ -7956,7 +7956,7 @@ more_balance:
 
 				req_cap = req_cap * sysctl_sched_capacity_margin
 						>> SCHED_CAPACITY_SHIFT;
-				cpufreq_sched_set_cap(env.dst_cpu, req_cap);
+				__cpufreq_set_cap(env.dst_cpu, req_cap);
 			}
 		}
 
@@ -8332,7 +8332,7 @@ static int active_load_balance_cpu_stop(void *data)
 
 				req_cap = req_cap * sysctl_sched_capacity_margin
 						>> SCHED_CAPACITY_SHIFT;
-				cpufreq_sched_set_cap(env.src_cpu, req_cap);
+				__cpufreq_set_cap(env.src_cpu, req_cap);
 			}
 		}
 		else
@@ -8358,7 +8358,7 @@ out_unlock:
 
 			req_cap = req_cap * sysctl_sched_capacity_margin
 					>> SCHED_CAPACITY_SHIFT;
-			cpufreq_sched_set_cap(target_cpu, req_cap);
+			__cpufreq_set_cap(target_cpu, req_cap);
 		}
 	}
 
@@ -8840,7 +8840,7 @@ static void task_tick_fair(struct rq *rq, struct task_struct *curr, int queued)
 		if (capacity_curr < capacity_orig &&
 		    (capacity_curr * SCHED_LOAD_SCALE) <
 		    (get_cpu_usage(cpu) * sysctl_sched_capacity_margin))
-			cpufreq_sched_set_cap(cpu, capacity_orig);
+			__cpufreq_set_cap(cpu, capacity_orig);
 	}
 }
 

@@ -1316,12 +1316,31 @@ static inline bool sched_energy_freq(void)
 #ifdef CONFIG_CPU_FREQ_GOV_SCHED
 void cpufreq_sched_set_cap(int cpu, unsigned long util);
 void cpufreq_sched_reset_cap(int cpu);
-#else
-static inline void cpufreq_sched_set_cap(int cpu, unsigned long util)
-{ }
-static inline void cpufreq_sched_reset_cap(int cpu)
-{ }
 #endif
+
+#ifdef CONFIG_CPU_FREQ_GOV_NEXUS
+void cpufreq_nexus_sched_notify(int cpu);
+#endif
+
+static inline void __cpufreq_set_cap(int cpu, unsigned long util) {
+#ifdef CONFIG_CPU_FREQ_GOV_SCHED
+	cpufreq_sched_set_cap(cpu, util);
+#endif
+
+#ifdef CONFIG_CPU_FREQ_GOV_NEXUS
+	cpufreq_nexus_sched_notify(cpu);
+#endif
+}
+
+static inline void __cpufreq_reset_cap(int cpu) {
+#ifdef CONFIG_CPU_FREQ_GOV_SCHED
+	cpufreq_sched_reset_cap(cpu);
+#endif
+
+#ifdef CONFIG_CPU_FREQ_GOV_NEXUS
+	cpufreq_nexus_sched_notify(cpu);
+#endif
+}
 
 extern void sysrq_sched_debug_show(void);
 extern void sched_init_granularity(void);
