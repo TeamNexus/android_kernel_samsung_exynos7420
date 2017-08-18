@@ -382,16 +382,35 @@ LINUXINCLUDE    := \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
-		   -fno-delete-null-pointer-checks \
-		   -fdiagnostics-show-option \
-		   -march=armv8-a+crc \
-		   -mtune=cortex-a57.cortex-a53 \
-		   -std=gnu89 \
-		   -Werror
+KBUILD_GRAPHITE := \
+	-fgraphite \
+	-fgraphite-identity \
+	-floop-block \
+	-floop-flatten \
+	-floop-interchange \
+	-floop-nest-optimize \
+	-floop-parallelize-all \
+	-floop-strip-mine \
+	-ftree-loop-linear
+
+KBUILD_CFLAGS := \
+	-fdiagnostics-show-option \
+	-fno-common \
+	-fno-delete-null-pointer-checks \
+	-fno-strict-aliasing \
+	-march=armv8-a+crc \
+	-mtune=cortex-a57.cortex-a53 \
+	-Ofast \
+	-std=gnu89 \
+	-Wall \
+	-Werror \
+	-Wno-format-security \
+	-Wno-maybe-uninitialized \
+	-Wno-trigraphs \
+	-Wstrict-prototypes \
+	-Wundef
+#	$(KBUILD_GRAPHITE)
+
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -610,12 +629,6 @@ endif # $(dot-config)
 # This allow a user to issue only 'make' to build a kernel including modules
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
-
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-else
-KBUILD_CFLAGS	+= -O2
-endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
