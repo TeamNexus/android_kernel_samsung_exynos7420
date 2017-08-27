@@ -26,6 +26,7 @@
 #include <linux/reboot.h>
 #include <linux/delay.h>
 #include <linux/cpu.h>
+#include <linux/ipa.h>
 #include <linux/pm_qos.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
@@ -1475,6 +1476,10 @@ inline ssize_t set_boot_low_freq(const char *buf, size_t count)
 		pm_qos_update_request(&boot_max_qos[CL_ONE],
 					PM_QOS_DEFAULT_VALUE);
 	}
+
+	ipa_update();
+
+	mutex_unlock(&cpufreq_lock);
 
 	return count;
 }
