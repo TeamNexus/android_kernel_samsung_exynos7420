@@ -4530,7 +4530,7 @@ int decon_doze_enable(struct decon_device *decon)
 #endif
 
 #ifdef CONFIG_FB_WINDOW_UPDATE
-	if ((decon->pdata->out_type == DECON_OUT_DSI) && (decon->need_update)) {
+	if ((decon->out_type == DECON_OUT_DSI) && (decon->need_update)) {
 		decon->need_update = false;
 		decon->update_win.x = 0;
 		decon->update_win.y = 0;
