@@ -73,6 +73,13 @@ struct lcd_seq_info {
 #define S6E3HF2_REG_MIC_ADDR 	0xF9
 #define S6E3HF2_REG_MIC_LEN	1
 
+#ifdef CONFIG_LCD_DOZE_MODE
+  #define	ALPM_OFF			0
+  #define ALPM_ON_LOW			1
+  #define HLPM_ON_LOW			2
+  #define ALPM_ON_HIGH			3
+  #define HLPM_ON_HIGH			4
+#endif
 
 static const unsigned int VINT_DIM_TABLE[] = {
 	5,	6,	7,	8,	9,

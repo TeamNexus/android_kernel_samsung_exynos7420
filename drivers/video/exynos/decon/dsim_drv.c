@@ -1216,7 +1216,16 @@ static int dsim_enable(struct dsim_device *dsim)
 	dsim_runtime_resume(dsim->dev);
 #endif
 
+#ifdef CONFIG_LCD_DOZE_MODE
+	if ((dsim->dsim_doze == DSIM_DOZE_STATE_DOZE) ||
+		(dsim->dsim_doze == DSIM_DOZE_STATE_DOZE_SUSPEND)) {
+		dsim_info("%s : exit doze\n", __func__);
+	} else {
+		dsim_set_panel_power(dsim, 1);
+	}
+#else
 	dsim_set_panel_power(dsim, 1);
+#endif
 
 	call_panel_ops(dsim, resume, dsim);
 
