@@ -312,6 +312,9 @@ int inet_create(struct net *net, struct socket *sock, int protocol,
 		if (sock->type != SOCK_RAW && sock->type != SOCK_DGRAM)
 			build_ehash_secret();
 
+	if (protocol < 0 || protocol >= IPPROTO_MAX)
+		return -EINVAL;
+
 	sock->state = SS_UNCONNECTED;
 
 	/* Look for the requested type/protocol pair. */
@@ -1091,7 +1094,7 @@ static struct inet_protosw inetsw_array[] =
 		.type =       SOCK_DGRAM,
 		.protocol =   IPPROTO_ICMP,
 		.prot =       &ping_prot,
-		.ops =        &inet_dgram_ops,
+		.ops =        &inet_sockraw_ops,
 		.no_check =   UDP_CSUM_DEFAULT,
 		.flags =      INET_PROTOSW_REUSE,
        },

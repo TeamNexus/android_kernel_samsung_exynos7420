@@ -57,8 +57,9 @@ static unsigned long mmap_rnd(void)
 			rnd = get_random_long() & ((1UL << mmap_rnd_compat_bits) - 1);
 		else
 #endif
-			rnd = get_random_long() & ((1UL << mmap_rnd_bits) - 1);
+            rnd = (long)get_random_int() & STACK_RND_MASK;
 	}
+
 	return rnd << PAGE_SHIFT;
 }
 

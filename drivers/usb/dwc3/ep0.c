@@ -736,6 +736,10 @@ static int dwc3_ep0_std_request(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 		dev_vdbg(dwc->dev, "USB_REQ_SET_ISOCH_DELAY\n");
 		ret = dwc3_ep0_set_isoch_delay(dwc, ctrl);
 		break;
+	case USB_REQ_SET_INTERFACE:
+		dev_vdbg(dwc->dev, "USB_REQ_SET_INTERFACE\n");
+		dwc->start_config_issued = false;
+		/* Fall through */
 	default:
 		dev_vdbg(dwc->dev, "Forwarding to gadget driver\n");
 		ret = dwc3_ep0_delegate_req(dwc, ctrl);
@@ -824,6 +828,11 @@ static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 		unsigned maxp = ep0->endpoint.maxpacket;
 
 		transfer_size += (maxp - (transfer_size % maxp));
+
+		/* Maximum of DWC3_EP0_BOUNCE_SIZE can only be received */
+		if (transfer_size > DWC3_EP0_BOUNCE_SIZE)
+			transfer_size = DWC3_EP0_BOUNCE_SIZE;
+
 		transferred = min_t(u32, ur->length,
 				transfer_size - length);
 		memcpy(ur->buf, dwc->ep0_bounce, transferred);
@@ -939,9 +948,20 @@ static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
 		u32	maxpacket;
 
 		WARN_ON(req->request.length > DWC3_EP0_BOUNCE_SIZE);
+		ret = usb_gadget_map_request(&dwc->gadget, &req->request,
+				dep->number);
+		if (ret) {
+			dev_dbg(dwc->dev, "failed to map request\n");
+			return;
+		}
 
 		maxpacket = dep->endpoint.maxpacket;
 		transfer_size = roundup(req->request.length, maxpacket);
+
+		if (transfer_size > DWC3_EP0_BOUNCE_SIZE) {
+			dev_WARN(dwc->dev, "bounce buf can't handle req len\n");
+			transfer_size = DWC3_EP0_BOUNCE_SIZE;
+		}
 
 		dwc->ep0_bounced = true;
 

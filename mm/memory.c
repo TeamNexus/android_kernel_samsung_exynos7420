@@ -834,20 +834,20 @@ copy_one_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 		if (!pte_file(pte)) {
 			swp_entry_t entry = pte_to_swp_entry(pte);
 
-			if (swap_duplicate(entry) < 0)
-				return entry.val;
+			if (likely(!non_swap_entry(entry))) {
+				if (swap_duplicate(entry) < 0)
+					return entry.val;
 
-			/* make sure dst_mm is on swapoff's mmlist. */
-			if (unlikely(list_empty(&dst_mm->mmlist))) {
-				spin_lock(&mmlist_lock);
-				if (list_empty(&dst_mm->mmlist))
-					list_add(&dst_mm->mmlist,
-						 &src_mm->mmlist);
-				spin_unlock(&mmlist_lock);
-			}
-			if (likely(!non_swap_entry(entry)))
+				/* make sure dst_mm is on swapoff's mmlist. */
+				if (unlikely(list_empty(&dst_mm->mmlist))) {
+					spin_lock(&mmlist_lock);
+					if (list_empty(&dst_mm->mmlist))
+						list_add(&dst_mm->mmlist,
+							 &src_mm->mmlist);
+					spin_unlock(&mmlist_lock);
+				}
 				rss[MM_SWAPENTS]++;
-			else if (is_migration_entry(entry)) {
+			} else if (is_migration_entry(entry)) {
 				page = migration_entry_to_page(entry);
 
 				if (PageAnon(page))
@@ -1654,12 +1654,6 @@ no_page_table:
 	return page;
 }
 
-static inline int stack_guard_page(struct vm_area_struct *vma, unsigned long addr)
-{
-	return stack_guard_page_start(vma, addr) ||
-	       stack_guard_page_end(vma, addr+PAGE_SIZE);
-}
-
 /**
  * __get_user_pages() - pin user pages in memory
  * @tsk:	task_struct of target task
@@ -1827,11 +1821,6 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 				int ret;
 				unsigned int fault_flags = 0;
 
-				/* For mlock, just skip the stack guard page. */
-				if (foll_flags & FOLL_MLOCK) {
-					if (stack_guard_page(vma, start))
-						goto next_page;
-				}
 				if (foll_flags & FOLL_WRITE)
 					fault_flags |= FAULT_FLAG_WRITE;
 				if (nonblocking)
@@ -1854,7 +1843,8 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 						else
 							return -EFAULT;
 					}
-					if (ret & VM_FAULT_SIGBUS)
+					if (ret & (VM_FAULT_SIGBUS |
+						   VM_FAULT_SIGSEGV))
 						return i ? i : -EFAULT;
 					BUG();
 				}
@@ -1964,7 +1954,7 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
 			return -ENOMEM;
 		if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE))
 			return -EHWPOISON;
-		if (ret & VM_FAULT_SIGBUS)
+		if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
 			return -EFAULT;
 		BUG();
 	}
@@ -3191,40 +3181,6 @@ out_release:
 }
 
 /*
- * This is like a special single-page "expand_{down|up}wards()",
- * except we must first make sure that 'address{-|+}PAGE_SIZE'
- * doesn't hit another vma.
- */
-static inline int check_stack_guard_page(struct vm_area_struct *vma, unsigned long address)
-{
-	address &= PAGE_MASK;
-	if ((vma->vm_flags & VM_GROWSDOWN) && address == vma->vm_start) {
-		struct vm_area_struct *prev = vma->vm_prev;
-
-		/*
-		 * Is there a mapping abutting this one below?
-		 *
-		 * That's only ok if it's the same stack mapping
-		 * that has gotten split..
-		 */
-		if (prev && prev->vm_end == address)
-			return prev->vm_flags & VM_GROWSDOWN ? 0 : -ENOMEM;
-
-		expand_downwards(vma, address - PAGE_SIZE);
-	}
-	if ((vma->vm_flags & VM_GROWSUP) && address + PAGE_SIZE == vma->vm_end) {
-		struct vm_area_struct *next = vma->vm_next;
-
-		/* As VM_GROWSDOWN but s/below/above/ */
-		if (next && next->vm_start == address + PAGE_SIZE)
-			return next->vm_flags & VM_GROWSUP ? 0 : -ENOMEM;
-
-		expand_upwards(vma, address + PAGE_SIZE);
-	}
-	return 0;
-}
-
-/*
  * We enter with non-exclusive mmap_sem (to exclude vma changes,
  * but allow concurrent faults), and pte mapped but not yet locked.
  * We return with mmap_sem still held, but pte unmapped and unlocked.
@@ -3241,10 +3197,6 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	/* File mapping without ->vm_ops ? */
 	if (vma->vm_flags & VM_SHARED)
-		return VM_FAULT_SIGBUS;
-
-	/* Check if we need to add a guard page to the stack */
-	if (check_stack_guard_page(vma, address) < 0)
 		return VM_FAULT_SIGBUS;
 
 	/* Use the zero-page for reads */
@@ -3843,8 +3795,18 @@ retry:
 	if (unlikely(pmd_none(*pmd)) &&
 	    unlikely(__pte_alloc(mm, vma, pmd, address)))
 		return VM_FAULT_OOM;
-	/* if an huge pmd materialized from under us just retry later */
-	if (unlikely(pmd_trans_huge(*pmd)))
+	/*
+	 * If a huge pmd materialized under us just retry later.  Use
+	 * pmd_trans_unstable() instead of pmd_trans_huge() to ensure the pmd
+	 * didn't become pmd_trans_huge under us and then back to pmd_none, as
+	 * a result of MADV_DONTNEED running immediately after a huge pmd fault
+	 * in a different thread of this mm, in turn leading to a misleading
+	 * pmd_trans_huge() retval.  All we have to ensure is that it is a
+	 * regular pmd that we can walk with pte_offset_map() and we can do that
+	 * through an atomic read in C, which is what pmd_trans_unstable()
+	 * provides.
+	 */
+	if (unlikely(pmd_trans_unstable(pmd)))
 		return 0;
 	/*
 	 * A regular pmd is established and it can't morph into a huge pmd
@@ -4103,7 +4065,7 @@ int generic_access_phys(struct vm_area_struct *vma, unsigned long addr,
 	if (follow_phys(vma, addr, write, &prot, &phys_addr))
 		return -EINVAL;
 
-	maddr = ioremap_prot(phys_addr, PAGE_SIZE, prot);
+	maddr = ioremap_prot(phys_addr, PAGE_ALIGN(len + offset), prot);
 	if (write)
 		memcpy_toio(maddr + offset, buf, len);
 	else
