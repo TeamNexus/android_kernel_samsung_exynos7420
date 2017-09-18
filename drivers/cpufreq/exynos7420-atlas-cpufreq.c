@@ -127,10 +127,17 @@ static struct apll_freq exynos7420_apll_freq_CA57[] = {
  * ASV group voltage table
  */
 static const unsigned int asv_voltage_7420_CA57[CPUFREQ_LEVEL_END_CA57] = {
+#ifdef CONFIG_EXYNOS7420_ATLAS_OVERCLOCK
+	1375000,	/* L0  2500 */
+	1325000,	/* L1  2400 */
+	1275000,	/* L2  2300 */
+	1225000,	/* L3  2200 */
+#else
 	1250000,	/* L0  2500 */
 	1250000,	/* L1  2400 */
 	1250000,	/* L2  2300 */
 	1250000,	/* L3  2200 */
+#endif
 	1250000,	/* L4  2100 */
 	1200000,	/* L5  2000 */
 	1156250,	/* L6  1900 */
@@ -384,13 +391,21 @@ static void __init set_volt_table_CA57(void)
 	case 5 :
 		max_support_idx_CA57 = L10; break;	/* 1.5GHz */
 	default :
+#ifdef CONFIG_EXYNOS7420_ATLAS_OVERCLOCK
+		max_support_idx_CA57 = L2;		/* 2.3GHz */
+#else
 		max_support_idx_CA57 = L4;		/* 2.1GHz */
+#endif
 	}
 #else
 	max_support_idx_CA57 = L13;	/* 1.2 GHz */
 #endif
 
+#ifdef CONFIG_EXYNOS7420_ATLAS_UNDERCLOCK
+	min_support_idx_CA57 = L23;	/* 200 MHz */
+#else
 	min_support_idx_CA57 = L17;	/* 800 MHz */
+#endif
 
 	pr_info("CPUFREQ of CA57 max_freq : L%d %u khz\n", max_support_idx_CA57,
 		exynos7420_freq_table_CA57[max_support_idx_CA57].frequency);
