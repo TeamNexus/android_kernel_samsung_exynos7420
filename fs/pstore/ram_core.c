@@ -93,7 +93,7 @@ static size_t buffer_start_add_locked(struct persistent_ram_zone *prz, size_t a)
 
 	old = atomic_read(&prz->buffer->start);
 	new = old + a;
-	while (unlikely(new >= prz->buffer_size))
+	while (unlikely(new > prz->buffer_size))
 		new -= prz->buffer_size;
 	atomic_set(&prz->buffer->start, new);
 
@@ -437,6 +437,7 @@ static void *persistent_ram_iomap(phys_addr_t start, size_t size,
 
 	buffer_start_add = buffer_start_add_locked;
 	buffer_size_add = buffer_size_add_locked;
+
 	if (memtype)
 		va = ioremap(start, size);
 	else
