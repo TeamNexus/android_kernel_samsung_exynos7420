@@ -207,3 +207,19 @@ config PMU_COREMEM_RATIO
 	depends on ARCH_EXYNOS
 	help
 	  This supports coremem ratio region by pmu count
+
+config EXYNOS7420_APOLLO_UNDERCLOCK
+    string "apollo/cl0 minimal frequency level"
+	depends on ARM_EXYNOS7420_CPUFREQ
+
+config EXYNOS7420_APOLLO_OVERCLOCK
+    string "apollo/cl0 maximal frequency level"
+	depends on ARM_EXYNOS7420_CPUFREQ
+
+config EXYNOS7420_ATLAS_UNDERCLOCK
+    string "atlas/cl1 minimal frequency level"
+	depends on ARM_EXYNOS7420_CPUFREQ
+
+config EXYNOS7420_ATLAS_OVERCLOCK
+    string "atlas/cl1 maximal frequency level"
+	depends on ARM_EXYNOS7420_CPUFREQ
