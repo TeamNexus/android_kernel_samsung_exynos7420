@@ -67,7 +67,7 @@ static char *check[] = {
 	"lzo", "cts", "zlib", NULL
 };
 
-#ifdef CONFIG_CRYPTO_DRBG
+#if defined(CONFIG_CRYPTO_FIPS) && defined(CONFIG_CRYPTO_DRBG)
 static char *drbg_cores[] = {
 #ifdef CONFIG_CRYPTO_DRBG_CTR
 	"ctr_aes128",
@@ -87,7 +87,7 @@ static char *drbg_cores[] = {
 	"hmac_sha256",
 #endif /* CONFIG_CRYPTO_DRBG_HMAC */
 };
-#endif /* CONFIG_CRYPTO_DRBG */
+#endif /* CONFIG_CRYPTO_FIPS && CONFIG_CRYPTO_DRBG */
 
 static int test_cipher_jiffies(struct blkcipher_desc *desc, int enc,
 			       struct scatterlist *sg, int blen, int sec)
