@@ -1652,6 +1652,7 @@ int kernel_kexec(void)
 	if (kexec_image->preserve_context) {
 		lock_system_sleep();
 		pm_prepare_console();
+		pr_info("called freeze_processes in kernel/kexec.c:1655(%s)", __func__);
 		error = freeze_processes();
 		if (error) {
 			error = -EBUSY;

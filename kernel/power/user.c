@@ -219,6 +219,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
 		sys_sync();
 		printk("done.\n");
 
+		pr_info("called freeze_processes in kernel/power/user.c:222(%s)", __func__);
 		error = freeze_processes();
 		if (!error)
 			data->frozen = 1;

@@ -653,6 +653,7 @@ int hibernate(void)
 	sys_sync();
 	printk("done.\n");
 
+	pr_info("called freeze_processes in kernel/power/hibernate.c:656(%s)", __func__);
 	error = freeze_processes();
 	if (error)
 		goto Free_bitmaps;
@@ -813,6 +814,7 @@ static int software_resume(void)
 		goto close_finish;
 
 	pr_debug("PM: Preparing processes for restore.\n");
+	pr_info("called freeze_processes in kernel/power/hibernate.c:817(%s)", __func__);
 	error = freeze_processes();
 	if (error) {
 		swsusp_close(FMODE_READ);
