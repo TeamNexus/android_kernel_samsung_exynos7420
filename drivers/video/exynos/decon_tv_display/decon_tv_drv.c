@@ -12,7 +12,7 @@
 #include "decon_tv.h"
 #include "regs-decon_tv.h"
 #include "../decon_display/decon_fb.h"
-#include "../../../staging/android/sw_sync.h"
+#include "../../../android/sw_sync.h"
 
 #include <linux/kernel.h>
 #include <linux/module.h>

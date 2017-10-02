@@ -1,5 +1,5 @@
 /*
- * drivers/staging/android/fiq_debugger.c
+ * drivers/android/fiq_debugger.c
  *
  * Serial Debugger Interface accessed through an FIQ interrupt.
  *

@@ -1,5 +1,5 @@
 #undef TRACE_SYSTEM
-#define TRACE_INCLUDE_PATH ../../drivers/staging/android/trace
+#define TRACE_INCLUDE_PATH ../../drivers/android/trace
 #define TRACE_SYSTEM sync
 
 #if !defined(_TRACE_SYNC_H) || defined(TRACE_HEADER_MULTI_READ)

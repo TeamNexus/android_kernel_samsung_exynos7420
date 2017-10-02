@@ -1,5 +1,5 @@
 /*
- * drivers/staging/android/ion/compat_ion.c
+ * drivers/android/ion/compat_ion.c
  *
  * Copyright (C) 2013 Google, Inc.
  *
@@ -21,7 +21,7 @@
 #include "ion.h"
 #include "compat_ion.h"
 
-/* See drivers/staging/android/uapi/ion.h for the definition of these structs */
+/* See drivers/android/uapi/ion.h for the definition of these structs */
 struct compat_ion_allocation_data {
 	compat_size_t len;
 	compat_size_t align;

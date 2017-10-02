@@ -1,5 +1,5 @@
 /*
- * drivers/staging/android/ion/ion.h
+ * drivers/android/ion/ion.h
  *
  * Copyright (C) 2011 Google, Inc.
  *

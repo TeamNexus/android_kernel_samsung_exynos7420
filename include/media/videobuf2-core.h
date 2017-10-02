@@ -17,7 +17,7 @@
 #include <linux/poll.h>
 #include <linux/videodev2.h>
 #include <linux/dma-buf.h>
-#include "../../drivers/staging/android/sw_sync.h"
+#include "../../drivers/android/sw_sync.h"
 
 struct vb2_alloc_ctx;
 struct vb2_fileio_data;

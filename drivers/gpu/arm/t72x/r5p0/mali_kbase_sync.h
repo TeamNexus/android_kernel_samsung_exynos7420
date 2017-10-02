@@ -25,7 +25,7 @@
 #ifndef MALI_KBASE_SYNC_H
 #define MALI_KBASE_SYNC_H
 #ifdef SLSI_FENCE_INTEGRATION
-#include <../../../../staging/android/sync.h>
+#include <../../../../android/sync.h>
 #endif /* SLSI_FENCE_INTEGRATION */
 #include <malisw/mali_malisw.h>
 

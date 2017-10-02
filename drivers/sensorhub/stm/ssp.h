@@ -39,7 +39,7 @@
 // memory scraps issue. HIFI batch
 #include <linux/vmalloc.h>
 
-#include "../../staging/android/android_alarm.h"
+#include "../../android/android_alarm.h"
 #include "factory/ssp_factory.h"
 #include "factory/ssp_mcu.h"
 #include "ssp_sensorlist.h"

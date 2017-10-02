@@ -36,7 +36,7 @@
 #include <linux/sched.h>
 #include <linux/spi/spi.h>
 #include <linux/battery/sec_battery.h>
-#include "../../staging/android/android_alarm.h"
+#include "../../android/android_alarm.h"
 
 // memory scraps issue. HIFI batch
 #include <linux/vmalloc.h>

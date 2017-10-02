@@ -43,7 +43,7 @@
 #endif				/* CONFIG_KDS */
 
 #ifdef CONFIG_SYNC
-#include <../../../../staging/android/sync.h>
+#include <../../../../android/sync.h>
 #endif				/* CONFIG_SYNC */
 
 #ifdef CONFIG_DEBUG_FS

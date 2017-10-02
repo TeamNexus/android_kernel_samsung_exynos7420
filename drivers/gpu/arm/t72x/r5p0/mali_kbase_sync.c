@@ -24,7 +24,7 @@
 
 #ifdef CONFIG_SYNC
 #ifdef SLSI_FENCE_INTEGRATION
-#include <../../../../staging/android/sync.h>
+#include <../../../../android/sync.h>
 #endif /* SLSI_FENCE_INTEGRATION */
 #include <mali_kbase.h>
 

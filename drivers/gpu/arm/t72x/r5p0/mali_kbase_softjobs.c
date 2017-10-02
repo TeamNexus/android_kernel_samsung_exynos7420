@@ -22,7 +22,7 @@
 #include <linux/dma-mapping.h>
 #ifdef CONFIG_SYNC
 #ifdef SLSI_FENCE_INTEGRATION
-#include <../../../../staging/android/sync.h>
+#include <../../../../android/sync.h>
 #endif /* SLSI_INTEGRATION */
 #include <linux/syscalls.h>
 #include "mali_kbase_sync.h"

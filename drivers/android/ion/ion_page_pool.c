@@ -1,5 +1,5 @@
 /*
- * drivers/staging/android/ion/ion_page_pool.c
+ * drivers/android/ion/ion_page_pool.c
  *
  * Copyright (C) 2011 Google, Inc.
  *

@@ -1,4 +1,4 @@
-/* drivers/staging/android/uapi/android_alarm.h
+/* drivers/android/uapi/android_alarm.h
  *
  * Copyright (C) 2006-2007 Google, Inc.
  *

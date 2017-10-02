@@ -43,7 +43,7 @@
 #include <linux/ion.h>
 #include <linux/highmem.h>
 #include <linux/memblock.h>
-#include "../../../staging/android/sw_sync.h"
+#include "../../../android/sw_sync.h"
 #include <linux/exynos_iovmm.h>
 #endif
 

@@ -24,7 +24,7 @@
 
 #ifdef CONFIG_SYNC
 #ifdef MALI_SEC_FENCE_INTEGRATION
-#include <../../../../staging/android/sync.h>
+#include <../../../../android/sync.h>
 #endif
 #include <mali_kbase.h>
 

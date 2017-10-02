@@ -1,5 +1,5 @@
 /*
- * drivers/staging/android/ion/ion_heap.c
+ * drivers/android/ion/ion_heap.c
  *
  * Copyright (C) 2011 Google, Inc.
  *

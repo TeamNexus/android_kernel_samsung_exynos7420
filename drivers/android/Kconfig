@@ -146,9 +146,9 @@ config SEC_OOM_KILLER
           Hence, it makes more sense that we select the oom victim
           as android does when LMK is invoked.
 
-source "drivers/staging/android/ion/Kconfig"
+source "drivers/android/ion/Kconfig"
 
-source "drivers/staging/android/fiq_debugger/Kconfig"
+source "drivers/android/fiq_debugger/Kconfig"
 
 endif # if ANDROID
 

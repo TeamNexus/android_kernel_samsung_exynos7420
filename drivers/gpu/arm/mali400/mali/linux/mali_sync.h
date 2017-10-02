@@ -22,7 +22,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)
 
 #include <linux/seq_file.h>
-#include "../../../../../staging/android/sync.h"
+#include "../../../../../android/sync.h"
 
 /*
  * Create a stream object.
