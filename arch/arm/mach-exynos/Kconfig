@@ -336,20 +336,6 @@ config EXYNOS_SNAPSHOT_PANIC_REBOOT
 	depends on EXYNOS_SNAPSHOT
 	default y
 
-config EXYNOS5_DYNAMIC_CPU_HOTPLUG
-	bool "Dynamic CPU Hotplug support"
-	depends on CPU_FREQ
-	help
-		Enable Dynamic CPU Hotplug
-
-config HOTPLUG_THREAD_STOP
-	bool "support to hotplug thread stop when LCD is on"
-	depends on EXYNOS5_DYNAMIC_CPU_HOTPLUG
-	help
-	  The hotplug thread unnecessary when LCD is on, because
-	  the dynamic hotplug not used during LCD on. This config
-	  enables hotplug thread stop feature.
-
 config EXYNOS_CONTENT_PATH_PROTECTION
 	bool "Exynos Content Path Protection"
 	depends on (ARM_TRUSTZONE && ARCH_EXYNOS5)

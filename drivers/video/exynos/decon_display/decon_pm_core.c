@@ -72,7 +72,6 @@ void display_block_clock_off(struct display_driver *dispdrv);
 int display_hibernation_power_on(struct display_driver *dispdrv);
 int display_hibernation_power_off(struct display_driver *dispdrv);
 static void decon_power_gating_handler(struct kthread_work *work);
-static void request_dynamic_hotplug(bool hotplug);
 
 struct pm_ops display_block_ops = {
 	.clk_on		= display_block_clock_on,
@@ -206,14 +205,10 @@ void debug_function(struct display_driver *dispdrv, const char *buf)
 
 	if (!kstrtol(buf, 10, &input_time)) {
 		if (input_time == 0) {
-			request_dynamic_hotplug(false);
 			dispdrv->pm_status.hotplug_gating_on = false;
 		} else {
 			dispdrv->pm_status.hotplug_delay_msec = input_time;
 			dispdrv->pm_status.hotplug_gating_on = true;
-			if (dispdrv->decon_driver.sfb->power_state == POWER_HIBER_DOWN) {
-				request_dynamic_hotplug(true);
-			}
 		}
 		pm_info("Hotplug delay time is : %ld ms\n", input_time);
 		pm_info("HOTPLUG GATING MODE: %s\n",
@@ -231,7 +226,6 @@ void debug_function(struct display_driver *dispdrv, const char *buf)
 	} else if (!strcmp(buf, "hotplug-gate-on")) {
 		dispdrv->pm_status.hotplug_gating_on = true;
 	} else if (!strcmp(buf, "hotplug-gate-off")) {
-		request_dynamic_hotplug(false);
 		dispdrv->pm_status.hotplug_gating_on = false;
 	} else {
 		pr_err("INVALID parameter: '%s'\n", buf);
@@ -331,7 +325,6 @@ int disp_pm_sched_power_on(struct display_driver *dispdrv, unsigned int cmd)
 		case S3CFB_WIN_PSR_EXIT:
 		case S3CFB_WIN_CONFIG:
 		case S3CFB_SET_VSYNC_INT:
-			request_dynamic_hotplug(false);
 			disp_pm_gate_lock(dispdrv, true);
 			queue_kthread_work(&dispdrv->pm_status.control_power_gating,
 				&dispdrv->pm_status.control_power_gating_work);
@@ -373,7 +366,6 @@ int disp_pm_add_refcount(struct display_driver *dispdrv)
 
 	flush_kthread_worker(&dispdrv->pm_status.control_power_gating);
 	if (dispdrv->decon_driver.sfb->power_state == POWER_HIBER_DOWN) {
-		request_dynamic_hotplug(false);
 		display_hibernation_power_on(dispdrv);
 	}
 
@@ -467,17 +459,6 @@ static int __display_block_clock_off(struct display_driver *dispdrv)
 	return 0;
 }
 
-static void request_dynamic_hotplug(bool hotplug)
-{
-#ifdef CONFIG_EXYNOS5_DYNAMIC_CPU_HOTPLUG
-	struct display_driver *dispdrv = get_display_driver();
-	if ((dispdrv->pm_status.hotplug_gating_on) &&
-		(dispdrv->platform_status == DISP_STATUS_PM1))
-		force_dynamic_hotplug(hotplug,
-			dispdrv->pm_status.hotplug_delay_msec);
-#endif
-}
-
 int display_hibernation_power_on(struct display_driver *dispdrv)
 {
 	int ret = 0;
@@ -529,7 +510,6 @@ int display_hibernation_power_off(struct display_driver *dispdrv)
 	__display_hibernation_power_off(dispdrv);
 	disp_pm_runtime_put_sync(dispdrv);
 
-	request_dynamic_hotplug(true);
 done:
 	mutex_unlock(&dispdrv->pm_status.pm_lock);
 	disp_pm_gate_lock(dispdrv, false);

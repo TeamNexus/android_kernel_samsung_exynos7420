@@ -381,7 +381,7 @@ static void __init set_volt_table_CA57(void)
 				exynos5433_abb_table_CA57[i]);
 	}
 
-#if defined(CONFIG_CPU_THERMAL) && defined(CONFIG_EXYNOS5_DYNAMIC_CPU_HOTPLUG)
+#if defined(CONFIG_CPU_THERMAL)
 	switch (exynos_get_table_ver()) {
 	case 0 :
 		max_support_idx_CA57 = L13;	/* 1.2 GHz */

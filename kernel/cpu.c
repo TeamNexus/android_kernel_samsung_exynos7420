@@ -567,11 +567,6 @@ void __weak arch_enable_nonboot_cpus_end(void)
 {
 }
 
-#if defined(CONFIG_SCHED_HMP) && defined(CONFIG_EXYNOS5_DYNAMIC_CPU_HOTPLUG)
-extern struct cpumask hmp_slow_cpu_mask;
-extern int disable_dm_hotplug_before_suspend;
-#endif
-
 #if defined(CONFIG_SENSORS_FP_LOCKSCREEN_MODE)
 extern bool fp_lockscreen_mode;
 #else
@@ -591,11 +586,6 @@ void __ref enable_nonboot_cpus(void)
 	printk(KERN_INFO "Enabling non-boot CPUs ...\n");
 
 	arch_enable_nonboot_cpus_begin();
-
-#if defined(CONFIG_SCHED_HMP) && defined(CONFIG_EXYNOS5_DYNAMIC_CPU_HOTPLUG)
-	if (!disable_dm_hotplug_before_suspend && !fp_lockscreen_mode)
-		cpumask_and(frozen_cpus, frozen_cpus, &hmp_slow_cpu_mask);
-#endif
 
 	for_each_cpu(cpu, frozen_cpus) {
 		error = _cpu_up(cpu, 1);

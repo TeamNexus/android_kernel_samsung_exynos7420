@@ -336,27 +336,6 @@ static void sdchg_exynos7420_ap_use_monitor(void *arg,
 			}
 		}
 	}
-	/******************************************/
-#if defined(SDCHG_SUB_POLICY_SET) && \
-	defined(CONFIG_SCHED_HMP) && defined(CONFIG_EXYNOS5_DYNAMIC_CPU_HOTPLUG)
-	if (!info->display_on && info->need_state == SDCHG_STATE_SET_LOW) {
-		SDCHG_LOG("[SDCHG][%s] cluster0_core1_hotplug_in() ++\n", __func__);
-		cluster0_core1_hotplug_in(true);
-		SDCHG_LOG("[SDCHG][%s] cluster0_core1_hotplug_in() --\n", __func__);
-		mdelay(5);
-#if defined(CONFIG_ARM_EXYNOS_MP_CPUFREQ)
-		for (i = 0; i < NR_CLUST0_CPUS; i++) {
-			if (cpu_online(i)) {
-				cpu_CL0_online_num++;
-			}
-		}
-		if (cpu_CL0_online_num < 4)
-			info->need_state = SDCHG_STATE_SET_LOW;
-		else
-			info->need_state = SDCHG_STATE_SET;
-#endif
-	}
-#endif
 
 	/****************************************/
 	if (info->display_on) {

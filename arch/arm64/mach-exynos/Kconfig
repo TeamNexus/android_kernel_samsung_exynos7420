@@ -84,22 +84,6 @@ config EXYNOS_ATAGS
 	  the traditional ATAGS boot format.
 	  Note that this option is not available for multiplatform builds.
 
-config EXYNOS5_DYNAMIC_CPU_HOTPLUG
-	bool "Dynamic CPU Hotplug support"
-	depends on CPU_FREQ
-	help
-		Enable Dynamic CPU Hotplug
-
-config EXYNOS5_DYNAMIC_CPU_HOTPLUG_SLEEP_PREPARE
-        int "Activate number of cores when sleep"
-        depends on EXYNOS5_DYNAMIC_CPU_HOTPLUG
-        default 1
-        help
-          When gose to sleep, activate some cores for performace
-          during sleep/wakeup sequence.
-          This config set the number of activate cores.
-          defaut value is "4" to activate all cores in cluster0.
-
 config EXYNOS_CONTENT_PATH_PROTECTION
 	bool "Exynos Content Path Protection"
 	depends on ARM_TRUSTZONE
