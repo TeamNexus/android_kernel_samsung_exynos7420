@@ -186,4 +186,4 @@ static int __init fpsimd_init(void)
 
 	return 0;
 }
-late_initcall(fpsimd_init);
+core_initcall(fpsimd_init);
