@@ -449,7 +449,7 @@ CONFIG_SECCOMP=y
 #
 CONFIG_CMDLINE=""
 CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE=y
-CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES="exynos7420-zerolte_usa_05"
+CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES="exynos7420-zerolte_usa_01 exynos7420-zerolte_usa_02 exynos7420-zerolte_usa_03 exynos7420-zerolte_usa_04 exynos7420-zerolte_usa_05 exynos7420-zerolte_usa_06 exynos7420-zerolte_usa_07"
 CONFIG_ARM64_APPENDED_DTB=y
 
 #
