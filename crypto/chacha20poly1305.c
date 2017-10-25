@@ -500,14 +500,13 @@ static int chachapoly_init(struct crypto_tfm *tfm)
 
 	align = crypto_tfm_alg_alignmask(tfm);
 	align &= ~(crypto_tfm_ctx_alignment() - 1);
-	crypto_aead_set_reqsize(__crypto_aead_cast(tfm),
-				align + offsetof(struct chachapoly_req_ctx, u) +
+	tfm->crt_aead.reqsize = align + offsetof(struct chachapoly_req_ctx, u) +
 				max(offsetof(struct chacha_req, req) +
 				    sizeof(struct ablkcipher_request) +
 				    crypto_ablkcipher_reqsize(chacha),
 				    offsetof(struct poly_req, req) +
 				    sizeof(struct ahash_request) +
-				    crypto_ahash_reqsize(poly)));
+				    crypto_ahash_reqsize(poly));
 
 	return 0;
 }
