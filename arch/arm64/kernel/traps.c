@@ -402,6 +402,8 @@ asmlinkage void bad_el0_sync(struct pt_regs *regs, int reason, unsigned int esr)
 	info.si_code  = ILL_ILLOPC;
 	info.si_addr  = pc;
 
+	current->thread.fault_address = 0;
+
 	force_sig_info(info.si_signo, &info, current);
 }
 
