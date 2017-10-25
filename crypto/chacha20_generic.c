@@ -25,7 +25,7 @@ static inline u32 le32_to_cpuvp(const void *p)
 	return le32_to_cpup(p);
 }
 
-static void chacha20_block(u32 *state, void *stream)
+void chacha20_block(u32 *state, void *stream)
 {
 	u32 x[16], *out = stream;
 	int i;
