@@ -2103,6 +2103,22 @@ unsigned int get_random_int(void)
 EXPORT_SYMBOL(get_random_int);
 
 /**
+ * randomize_range() returns a start address such that
+ *
+ *    [...... <range> .....]
+ *  start                  end
+ *
+ * a <range> with size "len" starting at the return value is inside in the
+ * area defined by [start, end], but is otherwise randomized.
+ */
+unsigned long
+randomize_range(unsigned long start, unsigned long end, unsigned long len)
+{	
+	return randomize_page(start, end - start);
+}
+EXPORT_SYMBOL(randomize_range);
+
+/**
  * randomize_page - Generate a random, page aligned address
  * @start:	The smallest acceptable address the caller will take.
  * @range:	The size of the area, starting at @start, within which the
