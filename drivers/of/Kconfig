@@ -112,4 +112,16 @@ config OF_OVERLAY
 config OF_NUMA
 	bool
 
+config OF_DTS_MAKEFILE_DIR
+	string "DTS Makefile-subdirectory"
+	depends on OF && ARM64
+	help
+	  Subdirectory in arch/arm64/boot which contains the makefile to use
+
+config OF_DTS_NAMES
+	string "Names of DTS-image to be included into device-tree"
+	depends on OF && ARM64
+	help
+	  List of space-seperated DTS-image files (without the .dtb-suffix)
+
 endif # OF

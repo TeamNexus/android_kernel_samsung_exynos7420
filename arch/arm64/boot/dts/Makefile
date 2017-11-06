@@ -27,4 +27,13 @@ dtstree		:= $(srctree)/$(src)
 
 dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(foreach d,$(dts-dirs), $(wildcard $(dtstree)/$(d)/*.dts)))
 
+dtb_makefile_dir := $(subst $\",,$(CONFIG_OF_DTS_MAKEFILE_DIR))
+dtb_names := $(subst $\",,$(CONFIG_OF_DTS_NAMES))
+
+ifneq ($(dtb_makefile_dir),)
+  ifneq ($(dtb_names),)
+    dtb-y := $(addprefix $(dtb_makefile_dir)/,$(addsuffix .dtb,$(dtb_names)))
+  endif
+endif
+
 always		:= $(dtb-y)

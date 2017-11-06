@@ -450,9 +450,8 @@ CONFIG_SECCOMP=y
 # Boot options
 #
 CONFIG_CMDLINE=""
-CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE=y
-CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES="exynos7420-zeroflte_usa_cdma_00 exynos7420-zeroflte_usa_cdma_01 exynos7420-zeroflte_usa_cdma_02 exynos7420-zeroflte_usa_cdma_03"
-CONFIG_ARM64_APPENDED_DTB=y
+CONFIG_OF_DTS_MAKEFILE_DIR="exynos"
+CONFIG_OF_DTS_NAMES="exynos7420-zeroflte_usa_cdma_00 exynos7420-zeroflte_usa_cdma_01 exynos7420-zeroflte_usa_cdma_02 exynos7420-zeroflte_usa_cdma_03"
 
 #
 # Userspace binary formats
