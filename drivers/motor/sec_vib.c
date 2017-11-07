@@ -26,7 +26,7 @@
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 
-#include "../android/timed_output.h"
+#include "../staging/android/timed_output.h"
 
 #define SEC_VIB_NAME "sec_vib"
 #define DEBUG_MOTOR_LOG

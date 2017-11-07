@@ -20,7 +20,7 @@
 #include <mali_kbase.h>
 
 #ifdef CONFIG_SYNC
-#include <../../../../android/sync.h>
+#include <../../../../staging/android/sync.h>
 #include <linux/syscalls.h>
 #include "mali_kbase_sync.h"
 #endif

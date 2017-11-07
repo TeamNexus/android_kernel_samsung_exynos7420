@@ -1,5 +1,5 @@
 /*
- * drivers/android/fiq_debugger/fiq_debugger_ringbuf.h
+ * drivers/staging/android/fiq_debugger/fiq_debugger_ringbuf.h
  *
  * simple lockless ringbuffer
  *

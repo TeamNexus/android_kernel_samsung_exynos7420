@@ -39,7 +39,7 @@
 #include "dsim.h"
 #include "decon_helper.h"
 #include "./panels/lcd_ctrl.h"
-#include "../../../android/sw_sync.h"
+#include "../../../staging/android/sw_sync.h"
 
 #ifdef CONFIG_OF
 static const struct of_device_id decon_device_table[] = {

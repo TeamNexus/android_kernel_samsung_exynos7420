@@ -25,7 +25,7 @@
 #ifndef MALI_KBASE_SYNC_H
 #define MALI_KBASE_SYNC_H
 
-#include <../../../../android/sync.h>
+#include <../../../../staging/android/sync.h>
 #include <malisw/mali_malisw.h>
 
 /*

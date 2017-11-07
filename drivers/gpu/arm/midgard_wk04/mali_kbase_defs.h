@@ -42,7 +42,7 @@
 #endif				/* CONFIG_KDS */
 
 #ifdef CONFIG_SYNC
-#include <../../../../android/sync.h>
+#include <../../../../staging/android/sync.h>
 #endif				/* CONFIG_SYNC */
 
 /** Enable SW tracing when set */

@@ -67,7 +67,7 @@ else
 DEFINES +=-DMALI_KBASE_THIRDPARTY_PATH=$(src)/platform/$(CONFIG_MALI_PLATFORM_THIRDPARTY_NAME)
 endif
 
-DEFINES += -I$(srctree)/drivers/android
+DEFINES += -I$(srctree)/drivers/staging/android
 
 # Use our defines when compiling
 ccflags-y += $(DEFINES) -I$(KBASE_PATH)   -I$(KBASE_PLATFORM_PATH) -I$(UMP_PATH) -I$(srctree)/include/linux

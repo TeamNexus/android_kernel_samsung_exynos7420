@@ -24,7 +24,7 @@
 
 #ifdef CONFIG_SYNC
 
-#include <../../../../android/sync.h>
+#include <../../../../staging/android/sync.h>
 #include <mali_kbase.h>
 
 struct mali_sync_timeline {

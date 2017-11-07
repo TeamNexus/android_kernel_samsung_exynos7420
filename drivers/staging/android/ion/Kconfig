@@ -39,5 +39,5 @@ config ION_EXYNOS_STAT_LOG
 	  Say Y if you need to see some stats info via debugfs
 
 if ION_EXYNOS
-source drivers/android/ion/exynos/Kconfig
+source drivers/staging/android/ion/exynos/Kconfig
 endif

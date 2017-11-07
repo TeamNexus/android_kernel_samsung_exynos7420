@@ -21,7 +21,7 @@
 #ifdef CONFIG_SYNC
 /* MALI_SEC */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)
-#include "../../../../../android/sync.h"
+#include "../../../../../staging/android/sync.h"
 #endif
 #endif
 #include "mali_dlbu.h"

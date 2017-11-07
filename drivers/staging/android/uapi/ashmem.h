@@ -1,5 +1,5 @@
 /*
- * drivers/android/uapi/ashmem.h
+ * drivers/staging/android/uapi/ashmem.h
  *
  * Copyright 2008 Google Inc.
  * Author: Robert Love

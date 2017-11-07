@@ -86,7 +86,7 @@ else
 DEFINES +=-DMALI_KBASE_THIRDPARTY_PATH=$(src)/platform/$(CONFIG_MALI_PLATFORM_THIRDPARTY_NAME)
 endif
 
-DEFINES += -I$(srctree)/drivers/android
+DEFINES += -I$(srctree)/drivers/staging/android
 
 ifeq ($(CONFIG_MALI_SEC_HWCNT),y)
 	DEFINES +=-DMALI_SEC_HWCNT

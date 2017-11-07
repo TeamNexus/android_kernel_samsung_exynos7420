@@ -93,7 +93,7 @@ else
 DEFINES +=-DMALI_KBASE_THIRDPARTY_PATH=$(src)/platform/$(CONFIG_MALI_PLATFORM_THIRDPARTY_NAME)
 endif
 
-DEFINES += -I$(srctree)/drivers/android
+DEFINES += -I$(srctree)/drivers/staging/android
 
 # MALI_SEC_INTEGRATION
 DEFINES +=-DMALI_SEC_FENCE_INTEGRATION

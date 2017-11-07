@@ -14,7 +14,7 @@
  */
 
 #include <linux/seq_file.h>
-#include "../../../../../android/sync.h"
+#include "../../../../../staging/android/sync.h"
 
 #include "mali_osk.h"
 #include "mali_kernel_common.h"
