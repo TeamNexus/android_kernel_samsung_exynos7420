@@ -2038,6 +2038,10 @@ static int get_ctrl_val(struct s5p_mfc_ctx *ctx, struct v4l2_control *ctrl)
 		}
 
 		if (!found) {
+			// ignore to make OMX-codecs work on Android 8.0 (and newer??)
+			if (ctrl->id == 0x00992063)
+				break;
+
 			v4l2_err(&dev->v4l2_dev, "Invalid control 0x%08x\n",
 					ctrl->id);
 			return -EINVAL;
