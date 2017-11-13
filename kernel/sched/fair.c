@@ -6963,32 +6963,6 @@ static int nohz_test_cpu(int cpu)
 }
 #endif
 
-#ifdef CONFIG_SCHED_HMP_LITTLE_PACKING
- /*
-  * Decide if the tasks on the busy CPUs in the
-  * littlest domain would benefit from an idle balance
-  */
- static int hmp_packing_ilb_needed(int cpu, int ilb_needed)
- {
- 	struct hmp_domain *hmp;
- 	/* allow previous decision on non-slowest domain */
- 	if (!hmp_cpu_is_slowest(cpu))
- 		return ilb_needed;
- 
- 	/* if disabled, use normal ILB behaviour */
- 	if (!hmp_packing_enabled)
- 		return ilb_needed;
- 
- 	hmp = hmp_cpu_domain(cpu);
- 	for_each_cpu_and(cpu, &hmp->cpus, nohz.idle_cpus_mask) {
- 		/* only idle balance if a CPU is loaded over threshold */
- 		if (cpu_rq(cpu)->avg.load_avg_ratio > hmp_full_threshold)
- 			return 1;
- 	}
- 	return 0;
- }
-#endif
-
 DEFINE_PER_CPU(cpumask_var_t, ilb_tmpmask);
 
 #if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
@@ -7048,7 +7022,7 @@ static int find_new_ilb(int cpu)
 #ifdef CONFIG_SCHED_HMP
 	/* restrict nohz balancing to occur in the same hmp domain */
 	ilb = cpumask_first_and(nohz.idle_cpus_mask,
-			&((struct hmp_domain *)hmp_cpu_domain(call_cpu))->cpus);
+			&((struct hmp_domain *)hmp_cpu_domain(cpu))->cpus);
 #endif
 
 /*
