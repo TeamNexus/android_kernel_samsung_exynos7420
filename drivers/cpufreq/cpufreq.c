@@ -1108,7 +1108,7 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 		 * unloading.
 		 */
 		pr_debug("waiting for dropping of refcount\n");
-		wait_for_completion(cmp);
+		wait_for_completion_interruptible(cmp);
 		pr_debug("wait complete\n");
 
 		if (cpufreq_driver->exit)
