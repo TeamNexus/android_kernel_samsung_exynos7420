@@ -5210,7 +5210,7 @@ static bool yield_to_task_fair(struct rq *rq, struct task_struct *p, bool preemp
  *      rewrite all of this once again.]
  */ 
 
-static unsigned long __read_mostly max_load_balance_interval = HZ/10;
+static unsigned long __read_mostly max_load_balance_interval = HZ/50;
 
 #define LBF_ALL_PINNED	0x01
 #define LBF_NEED_BREAK	0x02
@@ -7212,7 +7212,7 @@ static DEFINE_SPINLOCK(balancing);
  */
 void update_max_interval(void)
 {
-	max_load_balance_interval = HZ*num_online_cpus()/10;
+	max_load_balance_interval = (HZ/50)*num_online_cpus();
 }
 
 /*
