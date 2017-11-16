@@ -652,7 +652,6 @@ config CC_STACKPROTECTOR
 	  overwrite the canary, which gets detected and the attack is then
 	  neutralized via a kernel panic.
 	  This feature requires gcc version 4.2 or above.
-endif
 
 endmenu
 
