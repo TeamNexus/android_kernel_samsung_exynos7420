@@ -3721,6 +3721,9 @@ static int select_idle_sibling(struct task_struct *p, int target)
 	 * Otherwise, iterate the domains and find an elegible idle cpu.
 	 */
 	sd = rcu_dereference(per_cpu(sd_llc, target));
+	if (!sd)
+		return target;
+
 	for_each_lower_domain(sd) {
 		sg = sd->groups;
 		do {
