@@ -1752,6 +1752,20 @@ void msleep(unsigned int msecs)
 EXPORT_SYMBOL(msleep);
 
 /**
+ * usleep - sleep safely even with waitqueue interruptions
+ * @msecs: Time in microseconds to sleep for
+ */
+void usleep(unsigned int msecs)
+{
+	unsigned long timeout = usecs_to_jiffies(msecs) + 1;
+
+	while (timeout)
+		timeout = schedule_timeout_uninterruptible(timeout);
+}
+
+EXPORT_SYMBOL(usleep);
+
+/**
  * msleep_interruptible - sleep waiting for signals
  * @msecs: Time in milliseconds to sleep for
  */
