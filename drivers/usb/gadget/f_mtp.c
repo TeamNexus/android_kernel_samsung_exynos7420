@@ -1311,7 +1311,7 @@ static int mtp_bind_config(struct usb_configuration *c, bool ptp_config)
 		pr_err("\t2: Create MTP function\n");
 		pr_err("\t3: Create and symlink PTP function"
 				" with a gadget configuration\n");
-		return NULL;
+		return -EINVAL; /* Invalid Configuration */
 	}
 
 	/* allocate a string ID for our interface */
