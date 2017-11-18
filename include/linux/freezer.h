@@ -148,14 +148,14 @@ static inline void freezer_count_unsafe(void)
 static inline bool freezer_should_skip(struct task_struct *p)
 {
 	/*
-	 * Since Android Oreo, we have several problems with random
-	 * freezes in both screen on- and off-states. This may at 
-	 * at least solve the problem when the screen is off.
-	 * The main problem is located in the Zygote-service which,
-	 * for some reasons, calls freeze_processes() endlessly and
-	 * thus freezing the userspace until force-reboot.
+	 * The following smp_mb() paired with the one in freezer_count()
+	 * ensures that either freezer_count() sees %true freezing() or we
+	 * see cleared %PF_FREEZER_SKIP and return %false.  This makes it
+	 * impossible for a task to slip frozen state testing after
+	 * clearing %PF_FREEZER_SKIP.
 	 */
-	return true;
+	smp_mb();
+	return p->flags & PF_FREEZER_SKIP;
 }
 
 /*
