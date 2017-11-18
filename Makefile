@@ -1,8 +1,8 @@
 VERSION = 3
 PATCHLEVEL = 10
-SUBLEVEL = 109
+SUBLEVEL = 110
 EXTRAVERSION = -XXS5EQG2
-NAME = END-OF-LIFE
+NAME = TeamNexus-maintained
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
