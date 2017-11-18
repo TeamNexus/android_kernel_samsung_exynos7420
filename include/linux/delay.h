@@ -44,6 +44,7 @@ static inline void ndelay(unsigned long x)
 extern unsigned long lpj_fine;
 void calibrate_delay(void);
 void msleep(unsigned int msecs);
+void usleep(unsigned int usecs);
 unsigned long msleep_interruptible(unsigned int msecs);
 void usleep_range(unsigned long min, unsigned long max);
 
