@@ -239,22 +239,29 @@ static inline int suspend_freeze_processes(void)
 {
 	int error;
 
+	pr_info("%s: enter\n", __func__);
 	error = freeze_processes();
 	/*
 	 * freeze_processes() automatically thaws every task if freezing
 	 * fails. So we need not do anything extra upon error.
 	 */
-	if (error)
-		return error;
+	if (error) {
+		pr_info("%s: freeze_processes() failed with %d (0x%x)\n", __func__, error, error);
+		goto out;
+	}
 
 	error = freeze_kernel_threads();
 	/*
 	 * freeze_kernel_threads() thaws only kernel threads upon freezing
 	 * failure. So we have to thaw the userspace tasks ourselves.
 	 */
-	if (error)
+	if (error) {
+		pr_info("%s: freeze_kernel_threads() failed with %d (0x%x)\n", __func__, error, error);
 		thaw_processes();
+	}
 
+out:
+	pr_info("%s: exit, with %d (0x%x)\n", __func__, error, error);
 	return error;
 }
 

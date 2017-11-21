@@ -73,16 +73,19 @@ void queue_up_suspend_work(void)
 
 suspend_state_t pm_autosleep_state(void)
 {
+	pr_info("%s: retrieving state of autosleep (%d)\n", __func__, autosleep_state);
 	return autosleep_state;
 }
 
 int pm_autosleep_lock(void)
 {
+	pr_info("%s: locking autosleep\n", __func__);
 	return mutex_lock_interruptible(&autosleep_lock);
 }
 
 void pm_autosleep_unlock(void)
 {
+	pr_info("%s: unlocking autosleep\n", __func__);
 	mutex_unlock(&autosleep_lock);
 }
 

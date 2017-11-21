@@ -139,24 +139,33 @@ static int suspend_prepare(suspend_state_t state)
 {
 	int error;
 
-	if (need_suspend_ops(state) && (!suspend_ops || !suspend_ops->enter))
-		return -EPERM;
+	pr_info("%s: enter\n", __func__);
+	if (need_suspend_ops(state) && (!suspend_ops || !suspend_ops->enter)) {
+		error = -EPERM;
+		pr_info("%s: missing permissions, early-exiting\n", __func__);
+		goto out;
+	}
 
 	pm_prepare_console();
 
 	error = pm_notifier_call_chain(PM_SUSPEND_PREPARE);
 	if (error)
-		goto Finish;
+		goto finish;
 
 	error = suspend_freeze_processes();
-	if (!error)
-		return 0;
+	if (!error) {
+		error = 0;
+		pr_info("%s: suspend_freeze_processes() succeeded, early-exiting\n", __func__);
+		goto out;
+	}
 	log_suspend_abort_reason("One or more tasks refusing to freeze");
 	suspend_stats.failed_freeze++;
 	dpm_save_failed_step(SUSPEND_FREEZE);
- Finish:
+finish:
 	pm_notifier_call_chain(PM_POST_SUSPEND);
 	pm_restore_console();
+out:
+	pr_info("%s: exit, with %d (0x%x)\n", __func__, error, error);
 	return error;
 }
 
@@ -348,19 +357,28 @@ static int enter_state(suspend_state_t state)
 {
 	int error;
 
+	pr_info("%s: enter\n", __func__);
 	if (state == PM_SUSPEND_FREEZE) {
 #ifdef CONFIG_PM_DEBUG
 		if (pm_test_level != TEST_NONE && pm_test_level <= TEST_CPUS) {
 			pr_warning("PM: Unsupported test mode for freeze state,"
 				   "please choose none/freezer/devices/platform.\n");
-			return -EAGAIN;
+			error = -EAGAIN;
+			goto out;
 		}
 #endif
 	} else if (!valid_state(state)) {
-		return -EINVAL;
+		error = -EINVAL;
+		pr_info("%s: failed to validate suspending-state\n", __func__);
+		goto out;
 	}
-	if (!mutex_trylock(&pm_mutex))
-		return -EBUSY;
+	if (!mutex_trylock(&pm_mutex)) {
+		error = -EBUSY;
+		pr_info("%s: failed to lock mutex\n", __func__);
+		goto out;
+	}
+
+	printk(KERN_INFO "PM: Beginning freezing system ... ");
 
 	if (state == PM_SUSPEND_FREEZE)
 		freeze_begin();
@@ -369,28 +387,34 @@ static int enter_state(suspend_state_t state)
 	if (intr_sync(NULL)) {
 		printk("canceled.\n");
 		error = -EBUSY;
-		goto Unlock;
+		goto unlock;
 	}
 	printk("done.\n");
 
 	pr_debug("PM: Preparing system for %s sleep\n", pm_states[state].label);
 	error = suspend_prepare(state);
-	if (error)
-		goto Unlock;
+	if (error) {
+		pr_info("%s: failed to prepare suspend\n", __func__);
+		goto unlock;
+	}
 
-	if (suspend_test(TEST_FREEZER))
-		goto Finish;
+	if (suspend_test(TEST_FREEZER)) {
+		pr_info("%s: testing suspending succeeded, early-exiting\n", __func__);
+		goto finish;
+	}
 
 	pr_debug("PM: Entering %s sleep\n", pm_states[state].label);
 	pm_restrict_gfp_mask();
 	error = suspend_devices_and_enter(state);
 	pm_restore_gfp_mask();
 
- Finish:
+finish:
 	pr_debug("PM: Finishing wakeup.\n");
 	suspend_finish();
- Unlock:
+unlock:
 	mutex_unlock(&pm_mutex);
+out:
+	pr_info("%s: exit, with %d (0x%x)\n", __func__, error, error);
 	return error;
 }
 
@@ -421,6 +445,7 @@ int pm_suspend(suspend_state_t state)
 		return -EINVAL;
 
 	pm_suspend_marker("entry");
+	pr_info("%s: enter\n", __func__);
 	error = enter_state(state);
 	if (error) {
 		suspend_stats.fail++;
@@ -429,6 +454,7 @@ int pm_suspend(suspend_state_t state)
 		suspend_stats.success++;
 	}
 	pm_suspend_marker("exit");
+	pr_info("%s: exit\n", __func__);
 	return error;
 }
 EXPORT_SYMBOL(pm_suspend);

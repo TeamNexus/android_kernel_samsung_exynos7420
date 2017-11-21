@@ -352,6 +352,8 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
 	}
 
 	state = decode_state(buf, n);
+	pr_info("%s: current state: %d (max: %d)\n", __func__, state, PM_SUSPEND_MAX);
+
 	if (state < PM_SUSPEND_MAX)
 		error = pm_suspend(state);
 	else if (state == PM_SUSPEND_MAX)
