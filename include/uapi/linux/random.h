@@ -41,8 +41,10 @@ struct rand_pool_info {
 };
 
 struct rnd_state {
-	__u32 s1, s2, s3, s4;
+	__u32 s1, s2, s3;
 };
+
+/* Exported functions */
 
 /*
  * Flags for getrandom(2)
@@ -52,7 +54,5 @@ struct rnd_state {
  */
 #define GRND_NONBLOCK	0x0001
 #define GRND_RANDOM	0x0002
-
-/* Exported functions */
 
 #endif /* _UAPI_LINUX_RANDOM_H */
