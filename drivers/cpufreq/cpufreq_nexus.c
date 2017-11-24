@@ -806,7 +806,7 @@ static int cpufreq_governor_nexus(struct cpufreq_policy *policy, unsigned int ev
 				}
 
 #if CPUGOV_NEXUS_KTHREAD
-				snprintf(cpufreq_nexus_task_name, TASK_NAME_LEN, "cpufreq-nexus%d\n", policy->cpu);
+				snprintf(cpufreq_nexus_task_name, TASK_NAME_LEN, "cpufreq-nexus%d\n", work_cpu);
 
 				cpuinfo->work = kthread_create(cpufreq_nexus_task, NULL, cpufreq_nexus_task_name);
 				kthread_bind(cpuinfo->work, work_cpu);
