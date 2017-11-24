@@ -29,8 +29,9 @@
 
 #include "cpufreq_governor.h"
 
-#define CPUGOV_NEXUS_DEBUG    0
-#define CPUGOV_NEXUS_KTHREAD  1    // set to 0 for workqueues, 1 for kthreads
+#define CPUGOV_NEXUS_DEBUG      0
+#define CPUGOV_NEXUS_KTHREAD    1    // set to 0 for workqueues, 1 for kthreads
+#define CPUGOV_NEXUS_ERROR      WARN // use also may choose panic
 
 static struct cpufreq_nexus_tunables *global_tunables = NULL;
 static DEFINE_MUTEX(cpufreq_governor_nexus_mutex);
@@ -179,7 +180,7 @@ static unsigned int choose_frequency(struct cpufreq_nexus_cpuinfo *cpuinfo, int 
 	return cpuinfo->freq_table[*index].frequency;
 }
 
-static int cpufreq_nexus_timer(struct cpufreq_nexus_cpuinfo *cpuinfo, struct cpufreq_policy *policy, struct cpufreq_nexus_tunables *tunables)
+static int cpufreq_nexus_timer(struct cpufreq_nexus_cpuinfo *cpuinfo, struct cpufreq_policy *policy, struct cpufreq_nexus_tunables *tunables, int is_stopping)
 {
 	unsigned int ktime_now = ktime_to_us(ktime_get());
 	int ret = 0, /* 0: error/abort, 1: success */
@@ -340,6 +341,14 @@ static int cpufreq_nexus_timer(struct cpufreq_nexus_cpuinfo *cpuinfo, struct cpu
 			nexus_debug("%s: cpu%d: resetting policy because of reaching reset_stuck_timespan\n", __func__, cpu);
 		}
 
+		// choose lowest allowed frequency when cpugov is about to stop
+		if (is_stopping) {
+			// decide between absolute lowest frequency or user-set minimal frequency
+
+			/* freq = policy->min; */
+			freq = max(policy->min, tunables->freq_min);
+		}
+
 		// choose frequency
 		freq_next = choose_frequency(cpuinfo, &index, freq);
 		nexus_debug("%s: cpu%d: === freq = %u ===\n", __func__, cpu, freq_next);
@@ -367,29 +376,31 @@ static int cpufreq_nexus_task(void *data)
 	cpu = smp_processor_id();
 
 	cpuinfo = &per_cpu(gov_cpuinfo, cpu);
-	if (!cpuinfo)
-		goto exit;
+	if (!cpuinfo) {
+		CPUGOV_NEXUS_ERROR("%s: cpuinfo is null", __func__);
+		return 0;
+	}
 
 	policy = cpuinfo->policy;
-	if (!policy)
-		goto exit;
+	if (!policy) {
+		CPUGOV_NEXUS_ERROR("%s: policy is null", __func__);
+		return 0;
+	}
 
 	tunables = policy->governor_data;
 
 	set_current_state(TASK_INTERRUPTIBLE);
 	while (!kthread_should_stop()) {
 		/* main task */
-		ret = cpufreq_nexus_timer(cpuinfo, policy, tunables);
+		ret = cpufreq_nexus_timer(cpuinfo, policy, tunables, 0 /* is_stopping */);
 
-		/* abort on error */
-		if (!ret) {
-			goto exit;
-		}
-
+		/* wait */
 		usleep(tunables->timer_rate);
 	}
 
-exit:
+	/* prepare cpu for sleep */
+	cpufreq_nexus_timer(cpuinfo, policy, tunables, 1 /* is_stopping */);
+
 	return 0;
 }
 #else
@@ -401,28 +412,31 @@ static void cpufreq_nexus_task(struct work_struct *work)
 	struct cpufreq_nexus_tunables *tunables;
 
 	cpuinfo = container_of(work, struct cpufreq_nexus_cpuinfo, work.work);
-	if (!cpuinfo)
+	if (!cpuinfo) {
+		CPUGOV_NEXUS_ERROR("%s: cpuinfo is null", __func__);
 		return;
+	}
 
 	policy = cpuinfo->policy;
-	if (!policy)
+	if (!policy) {
+		CPUGOV_NEXUS_ERROR("%s: policy is null", __func__);
 		return;
+	}
 
 	tunables = policy->governor_data;
 	cpu = cpuinfo->cpu;
 
 	/* main task */
-	ret = cpufreq_nexus_timer(cpuinfo, policy, tunables);
+	ret = cpufreq_nexus_timer(cpuinfo, policy, tunables, 0 /* is_stopping */);
 
-	/* abort on error */
 	if (ret) {
 		delay = usecs_to_jiffies(tunables->timer_rate < 1000 ? 1000 : tunables->timer_rate);
 		if (num_online_cpus() > 1) {
 			delay -= jiffies % delay;
 		}
-
-		queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
 	}
+
+	queue_delayed_work_on(cpu, system_wq, &cpuinfo->work, delay);
 }
 #endif
 
