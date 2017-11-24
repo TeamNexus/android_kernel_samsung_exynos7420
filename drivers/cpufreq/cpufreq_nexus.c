@@ -29,9 +29,12 @@
 
 #include "cpufreq_governor.h"
 
-#define CPUGOV_NEXUS_DEBUG      0
-#define CPUGOV_NEXUS_KTHREAD    1    // set to 0 for workqueues, 1 for kthreads
-#define CPUGOV_NEXUS_ERROR      WARN // use also may choose panic
+// enable debugging-mode
+#define CPUGOV_NEXUS_DEBUG				0
+// set to 0 for workqueues, 1 for kthreads
+#define CPUGOV_NEXUS_KTHREAD				1
+// use also may choose panic
+#define CPUGOV_NEXUS_ERROR				WARN
 
 static struct cpufreq_nexus_tunables *global_tunables = NULL;
 static DEFINE_MUTEX(cpufreq_governor_nexus_mutex);
