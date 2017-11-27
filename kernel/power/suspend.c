@@ -146,12 +146,16 @@ static int suspend_prepare(suspend_state_t state)
 		goto out;
 	}
 
+	pr_info("%s: pm_prepare_console()\n", __func__);
 	pm_prepare_console();
 
+	pr_info("%s: pm_notifier_call_chain()\n", __func__);
 	error = pm_notifier_call_chain(PM_SUSPEND_PREPARE);
+	pr_info("%s: pm_notifier_call_chain(%d)\n", __func__, error);
 	if (error)
 		goto finish;
 
+	pr_info("%s: suspend_freeze_processes()\n", __func__);
 	error = suspend_freeze_processes();
 	if (!error) {
 		error = 0;
