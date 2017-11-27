@@ -1028,7 +1028,7 @@ static int exynos_cpufreq_pm_notifier(struct notifier_block *notifier,
 err:
 	pr_err("%s: failed to set voltage\n", __func__);
 
-	return NOTIFY_BAD;
+	return NOTIFY_OK;
 }
 
 static struct notifier_block exynos_cpufreq_nb = {
