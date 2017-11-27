@@ -72,10 +72,14 @@ void __weak arch_cpu_idle(void)
  */
 static void cpu_idle_loop(void)
 {
-#if defined(CONFIG_BATTERY_SWELLING_SELF_DISCHARGING) \
-		&& defined(CONFIG_MACH_UNIVERSAL7420)
+#define BATTERY_SWELLING_SELF_DISCHARGING \
+	defined(CONFIG_BATTERY_SWELLING_SELF_DISCHARGING) && defined(CONFIG_MACH_UNIVERSAL7420)
+	
+	int __read_mostly cpu = smp_processor_id();
+#if BATTERY_SWELLING_SELF_DISCHARGING
 	bool bsdchg_cpu_idle_force_poll = false;
 #endif
+
 	while (1) {
 		tick_nohz_idle_enter();
 
@@ -83,15 +87,14 @@ static void cpu_idle_loop(void)
 			check_pgt_cache();
 			rmb();
 
-			if (cpu_is_offline(smp_processor_id()))
+			if (cpu_is_offline(cpu))
 				arch_cpu_idle_dead();
 
 			local_irq_disable();
 			arch_cpu_idle_enter();
 
-#if defined(CONFIG_BATTERY_SWELLING_SELF_DISCHARGING) \
-		&& defined(CONFIG_MACH_UNIVERSAL7420)
-			if (bsdchg_cl0_idle_policy_set && raw_smp_processor_id() < 1)
+#if BATTERY_SWELLING_SELF_DISCHARGING
+			if (bsdchg_cl0_idle_policy_set && cpu < 1)
 				bsdchg_cpu_idle_force_poll = true;
 			else
 				bsdchg_cpu_idle_force_poll = false;
@@ -105,8 +108,7 @@ static void cpu_idle_loop(void)
 			 * know that the IPI is going to arrive right
 			 * away
 			 */
-#if defined(CONFIG_BATTERY_SWELLING_SELF_DISCHARGING) \
-		&& defined(CONFIG_MACH_UNIVERSAL7420)
+#if BATTERY_SWELLING_SELF_DISCHARGING
 			if (cpu_idle_force_poll || tick_check_broadcast_expired()
 					||bsdchg_cpu_idle_force_poll) {
 #else
