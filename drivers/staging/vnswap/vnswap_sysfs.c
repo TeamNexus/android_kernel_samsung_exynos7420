@@ -81,6 +81,13 @@ static ssize_t init_backing_storage_store(struct device *dev,
 	return len;
 }
 
+static ssize_t deinit_backing_storage_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t len)
+{
+	vnswap_deinit_backing_storage();
+	return len;
+}
+
 static ssize_t vnswap_init_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -125,6 +132,8 @@ static DEVICE_ATTR(swap_filename, S_IRUGO | S_IWUSR, swap_filename_show,
 	swap_filename_store);
 static DEVICE_ATTR(init_backing_storage, S_IRUGO | S_IWUSR,
 	init_backing_storage_show, init_backing_storage_store);
+static DEVICE_ATTR(deinit_backing_storage, S_IWUSR, NULL,
+		deinit_backing_storage_store);
 static DEVICE_ATTR(vnswap_init, S_IRUGO | S_IWUSR,
 	vnswap_init_show, NULL);
 static DEVICE_ATTR(vnswap_swap_info, S_IRUGO | S_IWUSR,
@@ -134,6 +143,7 @@ static struct attribute *vnswap_disk_attrs[] = {
 	&dev_attr_disksize.attr,
 	&dev_attr_swap_filename.attr,
 	&dev_attr_init_backing_storage.attr,
+	&dev_attr_deinit_backing_storage.attr,
 	&dev_attr_vnswap_init.attr,
 	&dev_attr_vnswap_swap_info.attr,
 	NULL,
