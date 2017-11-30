@@ -366,9 +366,6 @@ struct root_domain {
 	cpumask_var_t span;
 	cpumask_var_t online;
 
-	/* Indicate more than one runnable task for any CPU */
-	bool overload;
-
 	/*
 	 * The "RT overload" flag: it gets set if a CPU has more than
 	 * one runnable RT task.
@@ -579,7 +576,6 @@ static inline struct sched_domain *highest_flag_domain(int cpu, int flag)
 }
 
 DECLARE_PER_CPU(struct sched_domain *, sd_llc);
-DECLARE_PER_CPU(int, sd_llc_size);
 DECLARE_PER_CPU(int, sd_llc_id);
 
 struct sched_group_power {
@@ -723,6 +719,8 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
 # define const_debug const
 #endif
 
+extern const_debug unsigned int sysctl_sched_features;
+
 #define SCHED_FEAT(name, enabled)	\
 	__SCHED_FEAT_##name ,
 
@@ -734,13 +732,6 @@ enum {
 #undef SCHED_FEAT
 
 #if defined(CONFIG_SCHED_DEBUG) && defined(HAVE_JUMP_LABEL)
-
-/*
- * To support run-time toggling of sched features, all the translation units
- * (but core.c) reference the sysctl_sched_features defined in core.c.
- */
-extern const_debug unsigned int sysctl_sched_features;
-
 static __always_inline bool static_branch__true(struct static_key *key)
 {
 	return static_key_true(key); /* Not out of line branch. */
@@ -758,26 +749,13 @@ static __always_inline bool static_branch_##name(struct static_key *key) \
 }
 
 #include "features.h"
+
 #undef SCHED_FEAT
 
 extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 #define sched_feat(x) (static_branch_##x(&sched_feat_keys[__SCHED_FEAT_##x]))
 #else /* !(SCHED_DEBUG && HAVE_JUMP_LABEL) */
-
-/*
- * Each translation unit has its own copy of sysctl_sched_features to allow
- * constants propagation at compile time and compiler optimization based on
- * features default.
- */
-#define SCHED_FEAT(name, enabled)	\
-	(1UL << __SCHED_FEAT_##name) * enabled |
-static const_debug __maybe_unused unsigned int sysctl_sched_features =
-#include "features.h"
-	0;
-#undef SCHED_FEAT
-
 #define sched_feat(x) (sysctl_sched_features & (1UL << __SCHED_FEAT_##x))
-
 #endif /* SCHED_DEBUG && HAVE_JUMP_LABEL */
 
 #ifdef CONFIG_NUMA_BALANCING
@@ -1098,20 +1076,15 @@ static inline void inc_nr_running(struct rq *rq)
 {
 	rq->nr_running++;
 
-	if (rq->nr_running >= 2) {
-#ifdef CONFIG_SMP
-		if (!rq->rd->overload)
-			rq->rd->overload = true;
-#endif
-
 #ifdef CONFIG_NO_HZ_FULL
+	if (rq->nr_running == 2) {
 		if (tick_nohz_full_cpu(rq->cpu)) {
 			/* Order rq->nr_running write against the IPI */
 			smp_wmb();
 			smp_send_reschedule(rq->cpu);
 		}
-#endif
        }
+#endif
 }
 
 static inline void dec_nr_running(struct rq *rq)

@@ -382,7 +382,6 @@ void kernel_restart_prepare(char *cmd)
 	system_state = SYSTEM_RESTART;
 
 	/* P150615-05396 : user process freeze before device shutdown */
-	pr_info("called freeze_processes in kernel/sys.c:385(%s)", __func__);
 	freeze_processes();
 	usermodehelper_disable();
 	ignore_fs_panic = 1;
@@ -472,7 +471,6 @@ static void kernel_shutdown_prepare(enum system_states state)
 	system_state = state;
 
 	/* P150615-05396 : user process freeze before device shutdown */
-	pr_info("called freeze_processes in kernel/sys.c:475(%s)", __func__);
 	freeze_processes();
 	usermodehelper_disable();
 	ignore_fs_panic = 1;
