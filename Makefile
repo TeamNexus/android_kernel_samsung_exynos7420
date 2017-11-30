@@ -192,9 +192,15 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
 # "make" in the configured kernel build directory always uses that.
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
-export KBUILD_BUILDHOST := $(SUBARCH)
-ARCH		?=arm64
-CROSS_COMPILE	?=../../../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+export KBUILD_BUILDHOST 	:= $(SUBARCH)
+ARCH						?= arm64
+CROSS_COMPILE				?= $(srctree)/../../../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+
+ifeq ($(shell uname -s),Linux)
+  ifeq ($(shell uname -m),x86_64)
+    override CROSS_COMPILE	:= $(srctree)/../../../prebuilts/linaro/linux-x86/aarch64/bin/aarch64-linux-gnu-
+  endif
+endif
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -404,11 +410,23 @@ KBUILD_CFLAGS := \
 	-std=gnu89 \
 	-Wall \
 	-Werror \
+	-Wno-array-bounds \
+	-Wno-bool-operation \
+	-Wno-discarded-array-qualifiers \
+	-Wno-int-in-bool-context \
+	-Wno-format-overflow \
 	-Wno-format-security \
+	-Wno-format-truncation \
+	-Wno-logical-not-parentheses \
 	-Wno-maybe-uninitialized \
+	-Wno-memset-elt-size \
+	-Wno-misleading-indentation \
+	-Wno-nonnull \
+	-Wno-switch-unreachable \
+	-Wno-switch-bool \
+	-Wno-tautological-compare \
 	-Wno-trigraphs \
-	-Wstrict-prototypes \
-	-Wundef
+	-Wno-unused-const-variable \
 #	$(KBUILD_GRAPHITE)
 
 KBUILD_AFLAGS_KERNEL :=
