@@ -69,15 +69,28 @@
 #endif
 
 #ifdef CONFIG_SOC_EXYNOS7420
-#define CL0_MAX_VOLT		1175000
-#define CL1_MAX_VOLT		1125000
-#define CL0_MIN_VOLT		500000
-#define CL1_MIN_VOLT		500000
-#define CL_MAX_VOLT(cl)		(cl == CL_ZERO ? CL0_MAX_VOLT : CL1_MAX_VOLT)
-#define CL_MIN_VOLT(cl)		(cl == CL_ZERO ? CL0_MIN_VOLT : CL1_MIN_VOLT)
-#define CL_VOLT_STEP		6250
+
+  #define CL1_MIN_VOLT		575000
+  #define CL0_MIN_VOLT		525000
+
+  #ifdef CONFIG_EXYNOS7420_APOLLO_OVERCLOCK
+    #define CL0_MAX_VOLT		1523750
+  #else
+    #define CL0_MAX_VOLT		1168750
+  #endif
+
+  #ifdef CONFIG_EXYNOS7420_ATLAS_OVERCLOCK
+    #define CL1_MAX_VOLT		1425000
+  #else
+    #define CL1_MAX_VOLT		1300000
+  #endif
+
+  #define CL_MAX_VOLT(cl)		(cl == CL_ZERO ? CL0_MAX_VOLT : CL1_MAX_VOLT)
+  #define CL_MIN_VOLT(cl)		(cl == CL_ZERO ? CL0_MIN_VOLT : CL1_MIN_VOLT)
+  #define CL_VOLT_STEP			6250
+
 #else
-#error "Please define core voltage ranges for current SoC."
+  #error "Please define core voltage ranges for current SoC."
 #endif
 
 #define VOLT_RANGE_STEP		25000
