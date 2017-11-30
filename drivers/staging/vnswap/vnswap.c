@@ -1027,6 +1027,9 @@ static int create_device(struct vnswap *vnswap)
 	vnswap->disk->private_data = vnswap;
 	snprintf(vnswap->disk->disk_name, 16, "vnswap%d", 0);
 
+	/* Mark vnswap as fast swap-device */
+	__set_bit(QUEUE_FLAG_FAST, &vnswap->queue->queue_flags);
+
 	/* Actual capacity set using sysfs (/sys/block/vnswap<id>/disksize) */
 	set_capacity(vnswap->disk, 0);
 
