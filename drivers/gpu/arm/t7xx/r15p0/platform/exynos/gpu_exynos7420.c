@@ -48,7 +48,6 @@ void __iomem *g3d1_outstanding_regs;
 
 /*  clock, voltage, asv_abb, min_threshold, max_threshold, down_staycount, time, mem_freq, int_freq, cpu_freq (cl0) */
 static gpu_dvfs_info gpu_dvfs_table_default[] = {
-	{ 852, 792500, 0, 72, 100, 1, 0, 1552000, 400000, 1100000 },
 	{ 772, 743750, 0, 68,  96, 1, 0, 1552000, 400000, 1000000 },
 	{ 700, 706250, 0, 64,  92, 1, 0, 1552000, 400000,  900000 },
 	{ 600, 662500, 0, 60,  88, 1, 0, 1552000, 413000,  800000 },
@@ -69,13 +68,13 @@ static int mif_min_table[] = {
 };
 
 static int hpm_freq_table[] = {
-	/* 852, 772, 700, 600, 544, 420, 350, 266, 160, 100 */
-	3, 3, 3, 3, 3, 2, 2, 2, 2, 2
+	/* 772, 700, 600, 544, 420, 350, 266, 160, 100 */
+	3, 3, 3, 3, 2, 2, 2, 2, 2
 };
 
 static gpu_attribute gpu_config_attributes[] = {
-	{GPU_MAX_CLOCK, 852},
-	{GPU_MAX_CLOCK_LIMIT, 852},
+	{GPU_MAX_CLOCK, 772},
+	{GPU_MAX_CLOCK_LIMIT, 772},
 	{GPU_MIN_CLOCK, 100},
 	{GPU_DVFS_START_CLOCK, 100},
 	{GPU_DVFS_BL_CONFIG_CLOCK, 100},
@@ -130,7 +129,7 @@ static gpu_attribute gpu_config_attributes[] = {
 	{GPU_DVFS_POLLING_TIME, 30},
 	{GPU_PMQOS_INT_DISABLE, 1},
 	{GPU_PMQOS_MIF_MAX_CLOCK, 1464000},
-	{GPU_PMQOS_MIF_MAX_CLOCK_BASE, 852},
+	{GPU_PMQOS_MIF_MAX_CLOCK_BASE, 772},
 	{GPU_CL_DVFS_START_BASE, 100},
 	{GPU_DEBUG_LEVEL, DVFS_WARNING},
 	{GPU_TRACE_LEVEL, TRACE_ALL},
