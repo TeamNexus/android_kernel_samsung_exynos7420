@@ -3707,7 +3707,6 @@ static int select_idle_sibling(struct task_struct *p, int target)
 	struct sched_domain *sd;
 	struct sched_group *sg;
 	int i = task_cpu(p);
-	bool found_cpu = false;
 
 	if (idle_cpu(target))
 		return target;
@@ -3733,22 +3732,18 @@ static int select_idle_sibling(struct task_struct *p, int target)
 				goto next;
 
 			for_each_cpu(i, sched_group_cpus(sg)) {
-				if (idle_cpu(i)) {
-					found_cpu = true;
-					break;
-				}
+				if (i == target || !idle_cpu(i))
+					goto next;
 			}
 
-			if (found_cpu) {
-				goto next;
-			}
-
-			return find_idlest_cpu(sg, p, target);
+			target = cpumask_first_and(sched_group_cpus(sg),
+					tsk_cpus_allowed(p));
+			goto done;
 next:
 			sg = sg->next;
 		} while (sg != sd->groups);
 	}
-
+done:
 	return target;
 }
 
