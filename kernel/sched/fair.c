@@ -3837,7 +3837,7 @@ static struct sched_entity *hmp_get_heaviest_task(struct sched_entity* se, int m
 	unsigned long int max_ratio = se->avg.load_avg_ratio;
 	const struct cpumask *hmp_target_mask = NULL;
 
-	if (likely(migrate_up)) {
+	if (migrate_up) {
 		struct hmp_domain *hmp;
 		if(hmp_cpu_is_fastest(cpu_of(se->cfs_rq->rq)))
 			return max_se;
@@ -3849,8 +3849,8 @@ static struct sched_entity *hmp_get_heaviest_task(struct sched_entity* se, int m
 	/* The currently running task is not on the runqueue */
 	se = __pick_first_entity(cfs_rq_of(se));
 
-	while(unlikely(num_tasks && se)) {
-		if (likely(entity_is_task(se))) {
+	while(num_tasks && se) {
+		if (entity_is_task(se)) {
 			if(se->avg.load_avg_ratio > max_ratio &&
 					(hmp_target_mask &&
 					 cpumask_intersects(hmp_target_mask,
@@ -3872,7 +3872,7 @@ static struct sched_entity *hmp_get_lightest_task(struct sched_entity* se, int m
 	unsigned long int min_ratio = ULONG_MAX;
 	const struct cpumask *hmp_target_mask = NULL;
 
-	if (likely(migrate_down)) {
+	if (migrate_down) {
 		struct hmp_domain *hmp;
 		if(hmp_cpu_is_slowest(cpu_of(se->cfs_rq->rq)))
 			return min_se;
@@ -3884,8 +3884,8 @@ static struct sched_entity *hmp_get_lightest_task(struct sched_entity* se, int m
 	/* The currently running task is not on the runqueue */
 	se = __pick_first_entity(cfs_rq_of(se));
 
-	while(unlikely(num_tasks && se)) {
-		if (likely(entity_is_task(se))) {
+	while(num_tasks && se) {
+		if (entity_is_task(se)) {
 			if(se->avg.load_avg_ratio < min_ratio &&
 					(hmp_target_mask &&
 					 cpumask_intersects(hmp_target_mask,
