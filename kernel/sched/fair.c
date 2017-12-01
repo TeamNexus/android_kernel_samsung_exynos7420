@@ -3710,8 +3710,6 @@ static DEFINE_RAW_SPINLOCK(hmp_boost_lock);
 static DEFINE_RAW_SPINLOCK(hmp_semiboost_lock);
 static DEFINE_RAW_SPINLOCK(hmp_sysfs_lock);
 
-static struct hmp_domain *hmp_domain_cache[NR_CPUS] = { };
-
 #define BOOT_BOOST_DURATION 40000000 /* microseconds */
 #define YIELD_CORRECTION_TIME 10000000 /* nanoseconds */
 
@@ -3728,7 +3726,10 @@ static inline int hmp_boost(void)
 	unsigned long flags;
 
 	raw_spin_lock_irqsave(&hmp_boost_lock, flags);
-	ret = unlikely(hmp_boost_val || now < hmp_boostpulse_endtime);
+	if (hmp_boost_val || now < hmp_boostpulse_endtime)
+		ret = 1;
+	else
+		ret = 0;
 	raw_spin_unlock_irqrestore(&hmp_boost_lock, flags);
 
 	return ret;
@@ -3736,7 +3737,9 @@ static inline int hmp_boost(void)
 
 static inline int hmp_semiboost(void)
 {
-	return unlikely(hmp_semiboost_val != 0);
+	if (hmp_semiboost_val)
+		return 1;
+	return 0;
 }
 
 static unsigned int hmp_up_migration(int cpu, int *target_cpu, struct sched_entity *se);
@@ -3747,13 +3750,19 @@ static inline unsigned int hmp_domain_min_load(struct hmp_domain *hmpd,
 /* Check if cpu is in fastest hmp_domain */
 static inline unsigned int hmp_cpu_is_fastest(int cpu)
 {
-	return (cpu >= 4 && cpu < 8); // ... && cpu <= 7
+	struct list_head *pos;
+
+	pos = &hmp_cpu_domain(cpu)->hmp_domains;
+	return pos == hmp_domains.next;
 }
 
 /* Check if cpu is in slowest hmp_domain */
 static inline unsigned int hmp_cpu_is_slowest(int cpu)
 {
-	return (cpu >= 0 && cpu < 4); // ... && cpu <= 3
+	struct list_head *pos;
+
+	pos = &hmp_cpu_domain(cpu)->hmp_domains;
+	return list_is_last(pos, &hmp_domains);
 }
 
 /* Next (slower) hmp_domain relative to cpu */
@@ -3761,13 +3770,8 @@ static inline struct hmp_domain *hmp_slower_domain(int cpu)
 {
 	struct list_head *pos;
 
-	if (unlikely(hmp_domain_cache[cpu] == NULL))
-	{
-		pos = &hmp_cpu_domain(cpu)->hmp_domains;
-		hmp_domain_cache[cpu] = list_entry(pos->next, struct hmp_domain, hmp_domains);
-	}
-
-	return hmp_domain_cache[cpu];
+	pos = &hmp_cpu_domain(cpu)->hmp_domains;
+	return list_entry(pos->next, struct hmp_domain, hmp_domains);
 }
 
 /* Previous (faster) hmp_domain relative to cpu */
@@ -3775,13 +3779,8 @@ static inline struct hmp_domain *hmp_faster_domain(int cpu)
 {
 	struct list_head *pos;
 
-	if (unlikely(hmp_domain_cache[cpu] == NULL))
-	{
-		pos = &hmp_cpu_domain(cpu)->hmp_domains;
-		hmp_domain_cache[cpu] = list_entry(pos->prev, struct hmp_domain, hmp_domains);
-	}
-
-	return hmp_domain_cache[cpu];
+	pos = &hmp_cpu_domain(cpu)->hmp_domains;
+	return list_entry(pos->prev, struct hmp_domain, hmp_domains);
 }
 
 /*
@@ -3790,10 +3789,9 @@ static inline struct hmp_domain *hmp_faster_domain(int cpu)
 static inline unsigned int hmp_select_faster_cpu(struct task_struct *tsk,
 							int cpu)
 {
-	int lowest_cpu = NR_CPUS;
-	struct hmp_domain *hmp;
+	int lowest_cpu=NR_CPUS;
 	__always_unused int lowest_ratio;
-
+	struct hmp_domain *hmp;
 	if (hmp_cpu_is_fastest(cpu))
 		hmp = hmp_cpu_domain(cpu);
 	else
@@ -3812,7 +3810,7 @@ static inline unsigned int hmp_select_faster_cpu(struct task_struct *tsk,
 static inline unsigned int hmp_select_slower_cpu(struct task_struct *tsk,
 							int cpu)
 {
-	int lowest_cpu = 0;
+	int lowest_cpu=NR_CPUS;
 	struct hmp_domain *hmp;
 	__always_unused int lowest_ratio;
 
@@ -7937,10 +7935,6 @@ void print_cfs_stats(struct seq_file *m, int cpu)
 
 __init void init_sched_fair_class(void)
 {
-#ifdef CONFIG_SCHED_HMP
-	int i;
-#endif
-
 #ifdef CONFIG_SMP
 	open_softirq(SCHED_SOFTIRQ, run_rebalance_domains);
 
@@ -7953,10 +7947,6 @@ __init void init_sched_fair_class(void)
 #ifdef CONFIG_SCHED_HMP
 	hmp_cpu_mask_setup();
 
-	// setup hmp domain cache
-	for (i = 0; i < NR_CPUS; i++) {
-		hmp_domain_cache[i] = NULL;
-	}
 #endif
 #endif /* SMP */
 
