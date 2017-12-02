@@ -119,8 +119,6 @@ static void __irq_work_run(void)
 	if (llist_empty_relaxed(this_list))
 		return;
 
-	BUG_ON(!irqs_disabled());
-
 	llnode = llist_del_all(this_list);
 	while (llnode != NULL) {
 		work = llist_entry(llnode, struct irq_work, llnode);
@@ -152,8 +150,16 @@ static void __irq_work_run(void)
  */
 void irq_work_run(void)
 {
-	BUG_ON(!in_irq());
-	__irq_work_run();
+	barrier();
+	if (in_irq()) {
+		if (irqs_disabled()) {
+			__irq_work_run();
+		} else {
+			WARN(1, "cannot run IRQ-work: IRQs enabled");
+		}
+	} else {
+		WARN(1, "cannot run IRQ-work: non-hardirq context");
+	}
 }
 EXPORT_SYMBOL_GPL(irq_work_run);
 
