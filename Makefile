@@ -405,6 +405,7 @@ KBUILD_CFLAGS := \
 	-fno-delete-null-pointer-checks \
 	-fno-strict-aliasing \
 	-march=armv8-a+crc \
+	-mcpu=cortex-a57.cortex-a53 \
 	-mtune=cortex-a57.cortex-a53 \
 	-Ofast \
 	-std=gnu89 \
