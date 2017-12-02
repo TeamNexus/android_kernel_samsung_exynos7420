@@ -829,7 +829,12 @@ static int loop_set_fd(struct loop_device *lo, fmode_t mode,
 	int		lo_flags = 0;
 	int		error;
 	loff_t		size;
-	const unsigned long allowed_cpus = 0x3;
+
+	/*
+	 * Use one core from each cluster to have a powerful
+	 * backup if the little cluster is on full load.
+	 */
+	const unsigned long allowed_cpus = (1 << 0) | (1 << 4);
 
 	/* This is safe, since we have a reference from open(). */
 	__module_get(THIS_MODULE);
