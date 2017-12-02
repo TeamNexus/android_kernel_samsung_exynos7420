@@ -1424,8 +1424,7 @@ void update_process_times(int user_tick)
 	run_local_timers();
 	rcu_check_callbacks(cpu, user_tick);
 #ifdef CONFIG_IRQ_WORK
-	if (in_irq())
-		irq_work_run();
+	irq_work_run();
 #endif
 	scheduler_tick();
 	run_posix_cpu_timers(p);
