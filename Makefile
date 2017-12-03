@@ -386,19 +386,36 @@ LINUXINCLUDE    := \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
-		   -fno-delete-null-pointer-checks \
-		   -fdiagnostics-show-option -Werror \
-		   -Wno-array-bounds -Wno-bool-operation \
-		   -Wno-discarded-array-qualifiers -Wno-int-in-bool-context \
-		   -Wno-format-overflow -Wno-format-truncation \
-		   -Wno-logical-not-parentheses -Wno-memset-elt-size \
-		   -Wno-misleading-indentation -Wno-nonnull \
-		   -Wno-switch-unreachable -Wno-switch-bool \
-		   -Wno-tautological-compare -Wno-unused-const-variable
+KBUILD_CFLAGS := \
+	-fdiagnostics-show-option \
+	-fno-common \
+	-fno-delete-null-pointer-checks \
+	-fno-strict-aliasing \
+	-march=armv8-a+crc \
+	-mcpu=cortex-a57.cortex-a53 \
+	-mtune=cortex-a57.cortex-a53 \
+	-Ofast \
+	-std=gnu89 \
+	-Wall \
+	-Werror \
+	-Wno-array-bounds \
+	-Wno-bool-operation \
+	-Wno-discarded-array-qualifiers \
+	-Wno-int-in-bool-context \
+	-Wno-format-overflow \
+	-Wno-format-security \
+	-Wno-format-truncation \
+	-Wno-logical-not-parentheses \
+	-Wno-maybe-uninitialized \
+	-Wno-memset-elt-size \
+	-Wno-misleading-indentation \
+	-Wno-nonnull \
+	-Wno-switch-unreachable \
+	-Wno-switch-bool \
+	-Wno-tautological-compare \
+	-Wno-trigraphs \
+	-Wno-unused-const-variable
+
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -617,12 +634,6 @@ endif # $(dot-config)
 # This allow a user to issue only 'make' to build a kernel including modules
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
-
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-else
-KBUILD_CFLAGS	+= -O2
-endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
