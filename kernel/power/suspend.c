@@ -348,11 +348,7 @@ static int enter_state(suspend_state_t state)
 		freeze_begin();
 
 	printk(KERN_INFO "PM: Syncing filesystems ... ");
-	if (intr_sync(NULL)) {
-		printk("canceled.\n");
-		error = -EBUSY;
-		goto Unlock;
-	}
+	sys_sync();
 	printk("done.\n");
 
 	pr_debug("PM: Preparing system for %s sleep\n", pm_states[state].label);
