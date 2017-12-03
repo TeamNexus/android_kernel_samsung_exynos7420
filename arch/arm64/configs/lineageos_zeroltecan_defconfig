@@ -329,12 +329,12 @@ CONFIG_EXYNOS_SPI_RESET_DURING_DSTOP=y
 # CONFIG_MSM_HSIC_SYSMON is not set
 # CONFIG_MSM_SUBSYSTEM_RESTART is not set
 # CONFIG_MSM_SYSMON_COMM is not set
-# CONFIG_TIMA is not set, consider to enable if work is done
-# CONFIG_TIMA_LKMAUTH is not set, consider to enable if work is done
-# CONFIG_TIMA_RKP is not set, consider to enable if work is done
-# CONFIG_RKP_KDP is not set, consider to enable if work is done
-# CONFIG_RKP_DMAP_PROT is not set, consider to enable if work is done
-# CONFIG_RKP_NS_PROT is not set, consider to enable if work is done
+# CONFIG_TIMA is not set
+# CONFIG_TIMA_LKMAUTH is not set
+# CONFIG_TIMA_RKP is not set
+# CONFIG_RKP_KDP is not set
+# CONFIG_RKP_DMAP_PROT is not set
+# CONFIG_RKP_NS_PROT is not set
 # CONFIG_SEC_BAT_AUT is not set
 
 #
@@ -4399,10 +4399,10 @@ CONFIG_HAVE_ARCH_KGDB=y
 #
 # Samsung Rooting Restriction Feature
 #
-# CONFIG_SEC_RESTRICT_ROOTING is not set, consider to enable if work is done
-# CONFIG_SEC_RESTRICT_SETUID is not set, consider to enable if work is done
-# CONFIG_SEC_RESTRICT_FORK is not set, consider to enable if work is done
-# CONFIG_SEC_RESTRICT_ROOTING_LOG is not set, consider to enable if work is done
+# CONFIG_SEC_RESTRICT_ROOTING is not set
+# CONFIG_SEC_RESTRICT_SETUID is not set
+# CONFIG_SEC_RESTRICT_FORK is not set
+# CONFIG_SEC_RESTRICT_ROOTING_LOG is not set
 
 #
 # Security options
