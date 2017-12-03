@@ -11,7 +11,6 @@ config SUSPEND_FREEZER
 	bool "Enable freezer for suspend to RAM/standby" \
 		if ARCH_WANTS_FREEZER_CONTROL || BROKEN
 	depends on SUSPEND
-	default y
 	help
 	  This allows you to turn off the freezer for suspend. If this is
 	  done, no tasks are frozen for suspend to RAM/standby.
