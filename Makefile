@@ -407,6 +407,18 @@ KBUILD_CFLAGS += \
 	-std=gnu89 \
 	-Ofast
 
+# Optimizations
+KBUILD_CFLAGS += \
+	-ffast-math \
+	-finline \
+	-finline-atomics \
+	-finline-functions \
+	-finline-functions-called-once \
+	-fpredictive-commoning \
+	-fprefetch-loop-arrays \
+	-freorder-blocks \
+	-freorder-functions
+
 # Linaro
 KBUILD_CFLAGS += \
 	-Wno-array-bounds \
