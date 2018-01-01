@@ -195,7 +195,6 @@ int print_mcu_debug(char *pchRcvDataFrame, int *pDataIdx,
 		int iRcvDataFrameLength)
 {
 	int iLength = pchRcvDataFrame[(*pDataIdx)++];
-	int cur = *pDataIdx;
 
 	if (iLength > iRcvDataFrameLength - *pDataIdx || iLength <= 0) {
 		return iLength ? iLength : ERROR;
