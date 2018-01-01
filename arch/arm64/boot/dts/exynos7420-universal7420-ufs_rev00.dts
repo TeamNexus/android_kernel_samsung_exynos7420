@@ -148,7 +148,7 @@
 		supports-ddr200-mode;
 		enable-cache-control;
 		use-enable-shift;
-		qos_int_level = <468000>;
+		qos_int_level = <400000>;
 		desc-size = <3>;
 		fifo-depth = <0x40>;
 		card-detect-delay = <200>;
@@ -186,7 +186,7 @@
 		desc-size = <3>;
 		fifo-depth = <0x40>;
 		card-detect-delay = <200>;
-		qos_int_level = <468000>;
+		qos_int_level = <400000>;
 		bypass-for-allpass;
 		fix-fmp-size-mismatch;
 		not-allow-single-dma;
@@ -1632,12 +1632,41 @@
 		ufs,pmd-attr-gear = /bits/ 8 <2>;
 		ufs,pmd-attr-hs-series = "HS_rate_b";
 		ufs-opts-skip-connection-estab;
-		ufs-rx-adv-fine-gran-sup_en = <1>;
-		ufs-rx-adv-fine-gran-step = <3>;
-		ufs-rx-adv-min-activate-time-cap = <10>;
-		ufs-pa-granularity = <6>;
-		ufs-pa-tacctivate = <3>;
-		ufs-pa-hibern8time = <20>;
+		ufs-rx-adv-fine-gran-sup_en = <0>;
+		ufs-rx-min-activate-time-cap = <3>;
+		ufs-rx-hibern8-time-cap = <2>;
+		ufs-tx-hibern8-time-cap = <2>;
+
+		vcc-supply = <&ufs_fixed_vcc>;
+		vccq-supply = <&ufs_fixed_vccq>;
+		vccq2-supply = <&ufs_fixed_vccq2>;
+		vcc-fixed-regulator;
+		vccq-fixed-regulator;
+		vccq2-fixed-regulator;
+
+		ufs-cap-clk-gating;
+		ufs-cap-hibern8-with-clk-gating;
+	};
+
+	ufs_fixed_vcc: fixedregulator@0 {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs-vcc";
+		gpio = <&gph1 4 0>;
+		enable-active-high;
+	};
+
+	ufs_fixed_vccq: fixedregulator@1 {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs-vccq";
+		gpio = <&gph1 4 0>;
+		enable-active-high;
+	};
+
+	ufs_fixed_vccq2: fixedregulator@2 {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs-vccq2";
+		gpio = <&gph1 4 0>;
+		enable-active-high;
 		startup-delay-us = <2000>;
 		endup-delay-us = <2000>;
 	};
