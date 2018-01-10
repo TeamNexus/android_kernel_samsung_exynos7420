@@ -384,7 +384,7 @@ static void __init set_volt_table_CA57(void)
 	case 5 :
 		max_support_idx_CA57 = L10; break;	/* 1.5GHz */
 	default :
-		max_support_idx_CA57 = L4;		/* 2.1GHz */
+		max_support_idx_CA57 = L2;		/* 2.3GHz */
 	}
 #else
 	max_support_idx_CA57 = L13;	/* 1.2 GHz */

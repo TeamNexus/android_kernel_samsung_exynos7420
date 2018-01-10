@@ -301,7 +301,7 @@ static void __init set_volt_table_CA53(void)
 	case 12 :
 		max_support_idx_CA53 = L7; break;	/* 1.3GHz */
 	default :
-		max_support_idx_CA53 = L5;	/* 1.5GHz */
+		max_support_idx_CA53 = L3;	/* 1.7GHz */
 	}
 
 	min_support_idx_CA53 = L18;	/* 200MHz */
