@@ -2424,7 +2424,6 @@ static int android_create_device(struct android_dev *dev)
 	struct device_attribute **attrs = android_usb_attributes;
 	struct device_attribute *attr;
 	int err;
-	int hid_enabled;
 
 	dev->dev = device_create(android_class, NULL,
 					MKDEV(0, 0), NULL, "android0");
