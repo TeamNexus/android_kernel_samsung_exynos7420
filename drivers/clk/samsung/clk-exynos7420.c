@@ -672,6 +672,7 @@ struct samsung_pll_rate_table table_mfc[] = {
 };
 
 struct samsung_pll_rate_table table_g3d[] = {
+	{852000000U,	2, 71, 0, 0},
 	{772000000U,	6, 193, 0, 0},
 	{700000000U,	6, 175, 0, 0},
 	{600000000U,	3, 75, 0, 0},
