@@ -26,6 +26,8 @@
 #include <linux/smc.h>
 #define SYSREG_BASE EXYNOS7420_VA_SYSREG
 
+#include <mach/exynos-mod-asv.h>
+
 #define ASV_TBL_ADDR_BASE	(0x101E0160)
 #define ASV_TBL_ADDR_CNT	(5)
 #define ASV_RCC_ADDR_CNT	(8)
@@ -585,7 +587,7 @@ u32 cal_get_asv_grp(u32 id, s32 level)
 	return asv_group;
 }
 
-u32 cal_get_volt(u32 id, s32 level)
+static u32 __cal_get_volt(u32 id, s32 level)
 {
 	u32 volt, ssa_volt;
 	u32 asvgrp;
@@ -718,7 +720,7 @@ u32 cal_get_volt(u32 id, s32 level)
 	}
 
 	if (p_table == NULL) {
-		pr_info("%s : voltae table pointer is NULL\n", __func__);
+		pr_info("%s : voltage table pointer is NULL\n", __func__);
 		return 0;
 	}
 
@@ -729,6 +731,34 @@ u32 cal_get_volt(u32 id, s32 level)
 
 	if (ssa_volt > volt)
 		volt = ssa_volt;
+
+	return volt;
+}
+
+u32 cal_get_volt(u32 id, s32 level)
+{
+	u32 idx;
+	u32 volt;
+	const u32 *p_mod_table;
+
+	idx = level;
+	volt = __cal_get_volt(id, level);
+
+	p_mod_table = ((id == SYSC_DVFS_BIG) ? exynos_mod_volt_table_big[idx] :
+	               (id == SYSC_DVFS_LIT) ? exynos_mod_volt_table_lit[idx] :
+	               (id == SYSC_DVFS_G3D) ? exynos_mod_volt_table_g3d[idx] :
+	               NULL);
+
+	if (p_mod_table) {
+		u32 asvgrp = cal_get_asv_grp(id, level);
+		u32 modvolt = p_mod_table[asvgrp + 1];
+
+		if (((int)(volt - modvolt)) < 0) {
+			volt = 0;
+		} else {
+			volt -= modvolt;
+		}
+	}
 
 	return volt;
 }

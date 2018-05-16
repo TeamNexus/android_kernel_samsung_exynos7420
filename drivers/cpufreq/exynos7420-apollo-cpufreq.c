@@ -24,6 +24,8 @@
 #include <mach/cpufreq.h>
 #include <mach/asv-exynos.h>
 
+#include <mach/exynos-mod-clk.h>
+
 #define CPUFREQ_LEVEL_END_CA53	(L18 + 1)
 
 #undef PRINT_DIV_VAL
@@ -301,10 +303,19 @@ static void __init set_volt_table_CA53(void)
 	case 12 :
 		max_support_idx_CA53 = L7; break;	/* 1.3GHz */
 	default :
+#ifdef EXYNOS_APOLLO_OVERCLOCK
 		max_support_idx_CA53 = L3;	/* 1.7GHz */
+#else
+		max_support_idx_CA53 = L5;	/* 1.5GHz */
+#endif
 	}
 
+#ifdef EXYNOS_APOLLO_UNDERCLOCK
 	min_support_idx_CA53 = L18;	/* 200MHz */
+#else
+	max_support_idx_CA53 = L16;	/* 400MHz */
+#endif
+
 	pr_info("CPUFREQ of CA53 max_freq : L%d %u khz\n", max_support_idx_CA53,
 		exynos7420_freq_table_CA53[max_support_idx_CA53].frequency);
 	pr_info("CPUFREQ of CA53 min_freq : L%d %u khz\n", min_support_idx_CA53,
