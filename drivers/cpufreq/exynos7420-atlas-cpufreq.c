@@ -25,6 +25,8 @@
 #include <mach/asv-exynos.h>
 #include <linux/of.h>
 
+#include <mach/exynos-mod-clk.h>
+
 #define CPUFREQ_LEVEL_END_CA57	(L23 + 1)
 #undef PRINT_DIV_VAL
 
@@ -384,13 +386,21 @@ static void __init set_volt_table_CA57(void)
 	case 5 :
 		max_support_idx_CA57 = L10; break;	/* 1.5GHz */
 	default :
+#ifdef EXYNOS_ATLAS_OVERCLOCK
 		max_support_idx_CA57 = L2;		/* 2.3GHz */
+#else
+		max_support_idx_CA57 = L4;		/* 2.1GHz */
+#endif
 	}
 #else
 	max_support_idx_CA57 = L13;	/* 1.2 GHz */
 #endif
 
+#ifdef EXYNOS_ATLAS_UNDERCLOCK
 	min_support_idx_CA57 = L23;	/* 200 MHz */
+#else
+	min_support_idx_CA57 = L17;	/* 800 MHz */
+#endif
 
 	pr_info("CPUFREQ of CA57 max_freq : L%d %u khz\n", max_support_idx_CA57,
 		exynos7420_freq_table_CA57[max_support_idx_CA57].frequency);
