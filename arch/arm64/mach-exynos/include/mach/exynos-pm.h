@@ -75,4 +75,11 @@ static inline int exynos_lpc_prepare(void)
 }
 
 #endif
+
+extern struct cpumask hmp_slow_cpu_mask;
+extern struct cpumask hmp_fast_cpu_mask;
+
+bool exynos_is_critical_irq(const char *irq);
+bool exynos_is_critical_thread(const char *thread);
+
 #endif

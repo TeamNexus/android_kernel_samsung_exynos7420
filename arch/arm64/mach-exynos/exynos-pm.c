@@ -60,6 +60,148 @@ static unsigned int lpa_log_en;
 module_param(lpa_log_en, uint, 0644);
 #endif
 
+static const char *exynos_critical_irqs[] =
+{
+	// Exynos
+	"exynos-pcie",
+	"exynos_tmu",
+	"bt_host_wake",
+	"mobicore",
+	"sec-nfc",
+	"sec-pmic-irq",
+
+	// storage
+	"ufshcd",
+
+	// USB
+	"dwc3",
+
+	// GPS
+	"ttyBCM",
+
+	// display
+	"13900000.dsim",
+	"13930000.decon_fb",
+	"14ac0000.mali",
+
+	// input
+	"fts_touch",
+	"sec_touchkey",
+
+	// DMA
+	"10e10000.pdma0",
+	"10eb0000.pdma1",
+
+	// VPP
+	"13e02000.vpp",
+	"13e03000.vpp",
+	"13e04000.vpp",
+	"13e05000.vpp",
+
+	// SCALER
+	"15000000.vpp",
+	"15010000.vpp",
+
+	// media
+	"15020000.jpeg0",
+	"15100000.fimg2d",
+	"152e0000.mfc0",
+
+	// sound
+	"arizona",
+
+	// MIPI-LLI
+	"10f24000.mipi-lli",
+	"lli_cp2ap_status",
+	"lli_cp2ap_wakeup",
+
+	// Modem
+	"ss333_active",
+
+	// MMU
+	"114e0000.sysmmu",
+	"13a00000.sysmmu",
+	"13a10000.sysmmu",
+	"13e20000.sysmmu",
+	"13e30000.sysmmu",
+	"140e0000.sysmmu",
+	"141a0000.sysmmu",
+	"141b0000.sysmmu",
+	"141c0000.sysmmu",
+	"141d0000.sysmmu",
+	"141e0000.sysmmu",
+	"14270000.sysmmu",
+	"14280000.sysmmu",
+	"15040000.sysmmu",
+	"15140000.sysmmu",
+	"15160000.sysmmu",
+	"15200000.sysmmu",
+	"15210000.sysmmu",
+
+	// Circuits
+	"13620000.adc",
+	"13640000.hsi2c",
+	"13650000.hsi2c",
+	"13660000.hsi2c",
+	"13670000.hsi2c",
+	"136a0000.hsi2c",
+	"14e00000.hsi2c",
+	"14e10000.hsi2c",
+	"14e60000.hsi2c",
+	"14e70000.hsi2c",
+	"10580000.pinctrl",
+	"10e60000.pinctrl",
+	"13470000.pinctrl",
+	"14870000.pinctrl",
+	"14cd0000.pinctrl",
+	"14ce0000.pinctrl",
+	"15690000.pinctrl",
+
+	NULL
+};
+
+static const char *exynos_critical_threads[] =
+{
+	// display
+	"decon0",
+	"decon1",
+
+	// system
+	"zygote",
+	"zygote64",
+	"surfaceflinger",
+
+	// camera
+	"kfimg2dd",
+	"cameraserver",
+
+	NULL
+};
+
+bool exynos_is_critical_irq(const char *irq) {
+	int i;
+
+	for (i = 0; exynos_critical_irqs[i]; i++) {
+		if (!strcmp(irq, exynos_critical_irqs[i])) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool exynos_is_critical_thread(const char *thread) {
+	int i;
+
+	for (i = 0; exynos_critical_threads[i]; i++) {
+		if (!strcmp(thread, exynos_critical_threads[i])) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int exynos_lpa_prepare(void)
 {
 	int nr_calls = 0;

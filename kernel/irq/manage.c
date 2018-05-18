@@ -19,6 +19,8 @@
 #include <linux/sched/rt.h>
 #include <linux/task_work.h>
 
+#include <mach/exynos-pm.h>
+
 #include "internals.h"
 
 #ifdef CONFIG_IRQ_FORCED_THREADING
@@ -1121,7 +1123,14 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		}
 
 		/* Set default affinity mask once everything is setup */
-		setup_affinity(irq, desc, mask);
+		if (exynos_is_critical_irq(new->name)) {
+			irq_set_affinity_locked(&desc->irq_data, &hmp_fast_cpu_mask, true);
+			if (new->thread) {
+				kthread_bind_mask(new->thread, &hmp_fast_cpu_mask);
+			}
+		} else {
+			setup_affinity(irq, desc, mask);
+		}
 
 	} else if (new->flags & IRQF_TRIGGER_MASK) {
 		unsigned int nmsk = new->flags & IRQF_TRIGGER_MASK;
