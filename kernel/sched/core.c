@@ -4212,6 +4212,7 @@ long sched_setaffinity(pid_t pid, const struct cpumask *in_mask)
 	cpumask_var_t cpus_allowed, new_mask;
 	struct task_struct *p;
 	int retval;
+	bool tried = false;
 
 	get_online_cpus();
 	rcu_read_lock();
@@ -4267,7 +4268,17 @@ again:
 			 * cpuset's cpus_allowed
 			 */
 			cpumask_copy(new_mask, cpus_allowed);
-			goto again;
+
+			/*
+			 * If we have already been here before, just set all
+			 * online cpus as the new mask
+			 */
+			if (tried) {
+				cpumask_copy(new_mask, cpu_online_mask);
+			} else {
+				tried = true;
+				goto again;
+			}
 		}
 	}
 out_unlock:
