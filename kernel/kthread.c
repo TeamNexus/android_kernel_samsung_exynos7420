@@ -288,7 +288,7 @@ struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
 }
 EXPORT_SYMBOL(kthread_create_on_node);
 
-static void __kthread_bind(struct task_struct *p, unsigned int cpu, long state)
+static inline void __kthread_bind(struct task_struct *p, const struct cpumask *mask, long state)
 {
 	/* Must have done schedule() in kthread() before we set_task_cpu */
 	if (!wait_task_inactive(p, state)) {
@@ -296,7 +296,7 @@ static void __kthread_bind(struct task_struct *p, unsigned int cpu, long state)
 		return;
 	}
 	/* It's safe because the task is inactive. */
-	do_set_cpus_allowed(p, cpumask_of(cpu));
+	do_set_cpus_allowed(p, mask);
 	p->flags |= PF_NO_SETAFFINITY;
 }
 
@@ -311,9 +311,24 @@ static void __kthread_bind(struct task_struct *p, unsigned int cpu, long state)
  */
 void kthread_bind(struct task_struct *p, unsigned int cpu)
 {
-	__kthread_bind(p, cpu, TASK_UNINTERRUPTIBLE);
+	__kthread_bind(p, cpumask_of(cpu), TASK_UNINTERRUPTIBLE);
 }
 EXPORT_SYMBOL(kthread_bind);
+
+/**
+ * kthread_bind_mask - bind a just-created kthread to a cpumask.
+ * @p: thread created by kthread_create().
+ * @mask: cpumask (not al lcores required to be online, must be possible) for @k to run on.
+ *
+ * Description: This function is equivalent to set_cpus_allowed(),
+ * except that not all cpus in the mask must need to be online, and the thread must be
+ * stopped (i.e., just returned from kthread_create()).
+ */
+void kthread_bind_mask(struct task_struct *p, const struct cpumask *mask)
+{
+	__kthread_bind(p, mask, TASK_UNINTERRUPTIBLE);
+}
+EXPORT_SYMBOL(kthread_bind_mask);
 
 /**
  * kthread_create_on_cpu - Create a cpu bound kthread
@@ -354,7 +369,7 @@ static void __kthread_unpark(struct task_struct *k, struct kthread *kthread)
 	 */
 	if (test_and_clear_bit(KTHREAD_IS_PARKED, &kthread->flags)) {
 		if (test_bit(KTHREAD_IS_PER_CPU, &kthread->flags))
-			__kthread_bind(k, kthread->cpu, TASK_PARKED);
+			__kthread_bind(k, cpumask_of(kthread->cpu), TASK_PARKED);
 		wake_up_state(k, TASK_PARKED);
 	}
 }
