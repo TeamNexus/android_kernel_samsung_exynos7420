@@ -1,7 +1,7 @@
 /*
  * Linux cfg80211 driver
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfg80211.h 667534 2016-10-27 13:19:42Z $
+ * $Id: wl_cfg80211.h 693814 2017-04-05 06:09:10Z $
  */
 
 /**
@@ -56,17 +56,22 @@ struct wl_ibss;
 #define dtohchanspec(i) (i)
 
 #define WL_DBG_NONE	0
-#define WL_DBG_P2P_ACTION (1 << 5)
+#define WL_DBG_P2P_ACTION	(1 << 5)
 #define WL_DBG_TRACE	(1 << 4)
-#define WL_DBG_SCAN 	(1 << 3)
-#define WL_DBG_DBG 	(1 << 2)
+#define WL_DBG_SCAN	(1 << 3)
+#define WL_DBG_DBG	(1 << 2)
 #define WL_DBG_INFO	(1 << 1)
 #define WL_DBG_ERR	(1 << 0)
 
 #ifdef DHD_LOG_DUMP
-extern void dhd_log_dump_print(const char *fmt, ...);
+extern void dhd_log_dump_write(int type, const char *fmt, ...);
 extern char *dhd_log_dump_get_timestamp(void);
-struct bcm_cfg80211 *wl_get_bcm_cfg80211_ptr(void);
+#ifndef _DHD_LOG_DUMP_DEFINITIONS_
+#define DLD_BUF_TYPE_GENERAL    0
+#define DLD_BUF_TYPE_SPECIAL    1
+#define DHD_LOG_DUMP_WRITE(fmt, ...)    dhd_log_dump_write(DLD_BUF_TYPE_GENERAL, fmt, ##__VA_ARGS__)
+#define DHD_LOG_DUMP_WRITE_EX(fmt, ...) dhd_log_dump_write(DLD_BUF_TYPE_SPECIAL, fmt, ##__VA_ARGS__)
+#endif /* !_DHD_LOG_DUMP_DEFINITIONS_ */
 #endif /* DHD_LOG_DUMP */
 
 /* 0 invalidates all debug messages.  default is 1 */
@@ -85,8 +90,24 @@ do {	\
 	if (wl_dbg_level & WL_DBG_ERR) {	\
 		printk(KERN_INFO CFG80211_ERROR_TEXT "%s : ", __func__);	\
 		printk args;	\
-		dhd_log_dump_print("[%s] %s: ", dhd_log_dump_get_timestamp(), __func__);	\
-		dhd_log_dump_print args;	\
+		DHD_LOG_DUMP_WRITE("[%s] %s: ", dhd_log_dump_get_timestamp(), __func__);	\
+		DHD_LOG_DUMP_WRITE args;	\
+	}	\
+} while (0)
+#define	WL_ERR_MEM(args)	\
+do {	\
+	if (wl_dbg_level & WL_DBG_ERR) {	\
+		DHD_LOG_DUMP_WRITE("[%s] %s: ", dhd_log_dump_get_timestamp(), __func__);	\
+		DHD_LOG_DUMP_WRITE args;	\
+	}	\
+} while (0)
+#define	WL_ERR_EX(args)	\
+do {	\
+	if (wl_dbg_level & WL_DBG_ERR) {	\
+		printk(KERN_INFO CFG80211_ERROR_TEXT "%s : ", __func__);	\
+		printk args;	\
+		DHD_LOG_DUMP_WRITE_EX("[%s] %s: ", dhd_log_dump_get_timestamp(), __func__);	\
+		DHD_LOG_DUMP_WRITE_EX args;	\
 	}	\
 } while (0)
 #else
@@ -97,6 +118,8 @@ do {										\
 			printk args;						\
 		}								\
 } while (0)
+#define WL_ERR_MEM(args) WL_ERR(args)
+#define WL_ERR_EX(args) WL_ERR(args)
 #endif /* DHD_LOG_DUMP */
 #else /* defined(DHD_DEBUG) */
 #define	WL_ERR(args)									\
@@ -106,6 +129,8 @@ do {										\
 			printk args;						\
 		}								\
 } while (0)
+#define WL_ERR_MEM(args) WL_ERR(args)
+#define WL_ERR_EX(args) WL_ERR(args)
 #endif /* defined(DHD_DEBUG) */
 
 #ifdef WL_INFORM
@@ -718,6 +743,9 @@ struct bcm_cfg80211 {
 	u32 assoc_reject_status;
 	u32 roam_count;
 #endif /* DHD_ENABLE_BIGDATA_LOGGING */
+#if defined(SUPPORT_RANDOM_MAC_SCAN)
+	bool random_mac_enabled;
+#endif /* SUPPORT_RANDOM_MAC_SCAN */
 #ifdef WES_SUPPORT
 #ifdef CUSTOMER_SCAN_TIMEOUT_SETTING
 	int custom_scan_channel_time;
@@ -1275,5 +1303,10 @@ do {                                    \
 	}                               \
 } while (0)
 
+#if defined(SUPPORT_RANDOM_MAC_SCAN)
+int wl_cfg80211_set_random_mac(bool enable);
+int wl_cfg80211_random_mac_enable(void);
+int wl_cfg80211_random_mac_disable(void);
+#endif /* SUPPORT_RANDOM_MAC_SCAN */
 int wl_check_dongle_idle(struct wiphy *wiphy);
 #endif /* _wl_cfg80211_h_ */

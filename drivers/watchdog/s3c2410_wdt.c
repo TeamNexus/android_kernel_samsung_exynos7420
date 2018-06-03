@@ -83,6 +83,7 @@ static struct clk	*rate_wdt_clock;
 static struct clk	*wdt_clock;
 static void __iomem	*wdt_base;
 static unsigned int	 wdt_count;
+static unsigned int	 wdt_freq;
 static DEFINE_SPINLOCK(wdt_lock);
 
 #ifdef CONFIG_OF
@@ -183,7 +184,7 @@ static inline int s3c2410wdt_is_running(void)
 
 static int s3c2410wdt_set_min_max_timeout(struct watchdog_device *wdd)
 {
-	unsigned int freq = (unsigned int)clk_get_rate(rate_wdt_clock);
+	unsigned int freq = (unsigned int)wdt_freq;
 
 	if(freq == 0) {
 		dev_err(wdd->dev, "failed to get platdata\n");
@@ -199,7 +200,7 @@ static int s3c2410wdt_set_min_max_timeout(struct watchdog_device *wdd)
 
 static int s3c2410wdt_set_heartbeat(struct watchdog_device *wdd, unsigned timeout)
 {
-	unsigned int freq = (unsigned int)clk_get_rate(rate_wdt_clock);
+	unsigned int freq = (unsigned int)wdt_freq;
 	unsigned int count;
 	unsigned int divisor = 1;
 	unsigned long wtcon;
@@ -399,6 +400,7 @@ static int s3c2410wdt_probe(struct platform_device *pdev)
 	}
 
 	clk_prepare_enable(wdt_clock);
+	wdt_freq = clk_get_rate(wdt_clock);
 
 	/* Enable pmu watchdog reset control */
 	if (pdata != NULL && pdata->pmu_wdt_control != NULL) {

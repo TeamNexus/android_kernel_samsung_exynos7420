@@ -1621,14 +1621,12 @@ static inline void s5p_mfc_handle_error(struct s5p_mfc_ctx *ctx,
 
 	mfc_err_ctx("Interrupt Error: %d\n", err);
 	s5p_mfc_clear_int_flags();
-	wake_up_dev(dev, reason, err);
 
 	/* Error recovery is dependent on the state of context */
 	switch (ctx->state) {
-	case MFCINST_INIT:
-		/* This error had to happen while acquireing instance */
+	case MFCINST_RES_CHANGE_END:
 	case MFCINST_GOT_INST:
-		/* This error had to happen while parsing vps only */
+		/* This error had to happen while parsing the header */
 		if (err == S5P_FIMV_VPS_ONLY_ERROR) {
 			ctx->state = MFCINST_VPS_PARSED_ONLY;
 			if (!list_empty(&ctx->src_queue)) {
@@ -1638,7 +1636,7 @@ static inline void s5p_mfc_handle_error(struct s5p_mfc_ctx *ctx,
 				ctx->src_queue_cnt--;
 				vb2_buffer_done(&src_buf->vb, VB2_BUF_STATE_DONE);
 			}
-		} else if (err == S5P_FIMV_ERR_HEADER_NOT_FOUND && !ctx->is_drm) {
+		} else if (!ctx->is_drm) {
 			unsigned char *stream_vir = NULL;
 			unsigned int strm_size = 0;
 			spin_lock_irqsave(&dev->irqlock, flags);
@@ -1656,14 +1654,17 @@ static inline void s5p_mfc_handle_error(struct s5p_mfc_ctx *ctx,
 						DUMP_PREFIX_ADDRESS, strm_size, 4,
 						stream_vir, strm_size, false);
 		}
-	case MFCINST_RES_CHANGE_END:
-		/* This error had to happen while parsing the header */
+	case MFCINST_INIT:
+		/* This error had to happen while acquireing instance */
 	case MFCINST_HEAD_PARSED:
 		/* This error had to happen while setting dst buffers */
 	case MFCINST_RETURN_INST:
 		/* This error had to happen while releasing instance */
 	case MFCINST_DPB_FLUSHING:
 		/* This error had to happen while flushing DPB */
+	case MFCINST_SPECIAL_PARSING:
+	case MFCINST_SPECIAL_PARSING_NAL:
+		/* this error had to happen while special parsing */
 		clear_work_bit(ctx);
 		if (clear_hw_bit(ctx) == 0)
 			BUG();
@@ -1701,6 +1702,8 @@ static inline void s5p_mfc_handle_error(struct s5p_mfc_ctx *ctx,
 
 		break;
 	}
+	wake_up_dev(dev, reason, err);
+
 	return;
 }
 

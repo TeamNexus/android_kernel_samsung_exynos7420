@@ -1363,8 +1363,15 @@ static void max77843_fg_get_scaled_capacity(
 #endif	
 	union power_supply_propval value, chg_val, chg_val2;
 	int max_temp;
+#if defined(CONFIG_BATTERY_SWELLING)
+	union power_supply_propval swelling_val;
+#endif
 
 	psy_do_property("battery", get, POWER_SUPPLY_PROP_ONLINE, value);
+#if defined(CONFIG_BATTERY_SWELLING)
+	/* Check whether DUT is in the swelling mode or not */
+	psy_do_property("battery", get, POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT, swelling_val);
+#endif
 	psy_do_property("max77843-charger", get, POWER_SUPPLY_PROP_CURRENT_NOW,
 			chg_val);
 	psy_do_property("max77843-charger", get, POWER_SUPPLY_PROP_CHARGE_NOW,
@@ -1375,6 +1382,9 @@ static void max77843_fg_get_scaled_capacity(
 	max_temp = fuelgauge->capacity_max;
 
 	if ((value.intval != POWER_SUPPLY_TYPE_BATTERY) &&
+#if defined(CONFIG_BATTERY_SWELLING)
+		(!swelling_val.intval) &&
+#endif
 	    (!strcmp(chg_val2.strval, "CV Mode")) &&
 	    (chg_val.intval >= 1000)) {
 		int temp, sample;
@@ -1458,7 +1468,6 @@ static void max77843_fg_get_scaled_capacity(
 		max77843_write_word(fuelgauge->i2c, 0xD0, reg_data);
 	}
 #endif
-
 	pr_info("%s: scaled capacity (%d.%d)\n",
 		 __func__, val->intval/10, val->intval%10);
 }
@@ -1862,7 +1871,8 @@ static int max77843_fg_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ENERGY_FULL:
 		{
 			int fullcap = max77843_get_fuelgauge_value(fuelgauge, FG_FULLCAPNOM);
-			val->intval = fullcap * 100 / fuelgauge->battery_data->Capacity;
+			int capacity = fuelgauge->battery_data->Capacity / 2;
+			val->intval = fullcap * 100 / capacity;
 			pr_info("%s: asoc(%d), fullcap(0x%x)\n",
 				__func__, val->intval, fullcap);
 #if !defined(CONFIG_SEC_FACTORY)
@@ -2353,7 +2363,7 @@ static int __devinit max77843_fuelgauge_probe(struct platform_device *pdev)
 #if defined(CONFIG_DISABLE_SAVE_CAPACITY_MAX)
 	reg_data = max77843_read_word(fuelgauge->i2c, 0xD0);
 
-	if (reg_data >= 900 && reg_data <= 1000 && reg_data != fuelgauge->capacity_max) {
+	if (reg_data >= 700 && reg_data <= 1000 && reg_data != fuelgauge->capacity_max) {
 		pr_info("%s : Capacity Max Update (%d) -> (%d)\n",
 			__func__, fuelgauge->capacity_max, reg_data);
 		fuelgauge->capacity_max = reg_data;

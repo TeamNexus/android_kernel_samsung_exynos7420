@@ -4,7 +4,7 @@
  * Flow rings are transmit traffic (=propagating towards antenna) related entities
  *
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -27,7 +27,7 @@
  *
  * <<Broadcom-WL-IPTag/Open:>>
  *
- * $Id: dhd_flowring.c 591285 2015-10-07 11:56:29Z $
+ * $Id: dhd_flowring.c 697414 2017-05-03 14:48:20Z $
  */
 
 
@@ -445,13 +445,20 @@ dhd_flow_rings_ifindex2role(dhd_pub_t *dhdp, uint8 ifindex)
 #ifdef WLTDLS
 bool is_tdls_destination(dhd_pub_t *dhdp, uint8 *da)
 {
-	tdls_peer_node_t *cur = dhdp->peer_tbl.node;
+	unsigned long flags;
+	tdls_peer_node_t *cur = NULL;
+
+	DHD_TDLS_LOCK(&dhdp->tdls_lock, flags);
+	cur = dhdp->peer_tbl.node;
+
 	while (cur != NULL) {
 		if (!memcmp(da, cur->addr, ETHER_ADDR_LEN)) {
+			DHD_TDLS_UNLOCK(&dhdp->tdls_lock, flags);
 			return TRUE;
 		}
 		cur = cur->next;
 	}
+	DHD_TDLS_UNLOCK(&dhdp->tdls_lock, flags);
 	return FALSE;
 }
 #endif /* WLTDLS */
@@ -944,7 +951,7 @@ int dhd_update_flow_prio_map(dhd_pub_t *dhdp, uint8 map)
 /** Inform firmware on updated flow priority mapping, called on IOVAR */
 int dhd_flow_prio_map(dhd_pub_t *dhd, uint8 *map, bool set)
 {
-	uint8 iovbuf[24];
+	uint8 iovbuf[24] = {0};
 	if (!set) {
 		bcm_mkiovar("bus:fl_prio_map", NULL, 0, (char*)iovbuf, sizeof(iovbuf));
 		if (dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, iovbuf, sizeof(iovbuf), FALSE, 0) < 0) {

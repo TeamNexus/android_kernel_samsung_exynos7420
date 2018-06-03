@@ -1327,7 +1327,7 @@ int hv_muic_change_afc_voltage(struct max77843_muic_data *muic_data, int vol)
 
 			muic_data->afc_count = 0;
 			max77843_muic_adcmode_switch_vbus(muic_data, true);
-			max77843_write_reg(muic_data->i2c, MAX77843_MUIC_REG_HVTXBYTE, 0x0C);
+			max77843_write_reg(muic_data->i2c, MAX77843_MUIC_REG_HVTXBYTE, 0x08);
 			max77843_muic_afc_control_ping(muic_data, true);
 
 			repeat_cnt = HV_FORCE_CHANGE_WAIT_MAX;

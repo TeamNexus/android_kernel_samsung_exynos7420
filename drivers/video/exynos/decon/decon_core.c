@@ -3951,6 +3951,33 @@ static void decon_update_regs_handler(struct kthread_work *work)
 	}
 }
 
+static int decon_validate_dma_mapping(struct decon_device *decon,
+		struct decon_win_config *win_config)
+{
+
+	int i;
+	struct decon_win_config *config;
+	if (decon->id)
+		return true;
+
+	for (i = 0; i < decon->pdata->max_win; i++) {
+		config = &win_config[i];
+		if (config->state != DECON_WIN_STATE_BUFFER)
+			continue;
+
+		if (config->idma_type == IDMA_G2) {
+			if (i != 6) {
+				decon_err("%s: IDMA2 is mapped to %d\n", __func__, i);
+				return false;
+			}
+		} else if (i == 6) {
+			decon_err("%s: %d is mapped to win[6]\n", __func__, config->idma_type);
+			return false;
+		}
+	}
+	return true;
+}
+
 static void decon_set_smart_dma_mapping(struct decon_device *decon,
 			struct decon_win_config *win_config)
 {
@@ -4307,6 +4334,11 @@ static int decon_set_win_config(struct decon_device *decon,
 	}
 windows_config:
 #endif
+	if (!decon_validate_dma_mapping(decon, win_config)) {
+		decon_err("%s: IDMA2 wrong mapping\n", __func__);
+		ret = -ENOMEM;
+		goto err;
+	}
 
 	regs = kzalloc(sizeof(struct decon_reg_data), GFP_KERNEL);
 	if (!regs) {

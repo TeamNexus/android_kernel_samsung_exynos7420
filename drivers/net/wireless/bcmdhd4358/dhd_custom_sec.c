@@ -1,7 +1,7 @@
 /*
  * Customer HW 4 dependant file
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -924,7 +924,6 @@ void sec_control_pm(dhd_pub_t *dhd, uint *power_mode)
 	struct file *fp = NULL;
 	char *filepath = PSMINFO;
 	char power_val = 0;
-	char iovbuf[WL_EVENTING_MASK_LEN + 12];
 #ifdef DHD_ENABLE_LPC
 	int ret = 0;
 	uint32 lpc = 0;
@@ -954,23 +953,18 @@ void sec_control_pm(dhd_pub_t *dhd, uint *power_mode)
 			dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)power_mode,
 				sizeof(uint), TRUE, 0);
 			/* Turn off MPC in AP mode */
-			bcm_mkiovar("mpc", (char *)power_mode, 4,
-				iovbuf, sizeof(iovbuf));
-			dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf,
-				sizeof(iovbuf), TRUE, 0);
+			dhd_iovar(dhd, 0, "mpc", (char *)power_mode, sizeof(*power_mode), NULL, 0,
+					TRUE);
 			g_pm_control = TRUE;
 #ifdef ROAM_ENABLE
 			/* Roaming off of dongle */
-			bcm_mkiovar("roam_off", (char *)&roamvar, 4,
-				iovbuf, sizeof(iovbuf));
-			dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf,
-				sizeof(iovbuf), TRUE, 0);
+			dhd_iovar(dhd, 0, "roam_off", (char *)&roamvar, sizeof(roamvar), NULL, 0,
+					TRUE);
 #endif
 #ifdef DHD_ENABLE_LPC
 			/* Set lpc 0 */
-			bcm_mkiovar("lpc", (char *)&lpc, 4, iovbuf, sizeof(iovbuf));
-			if ((ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf,
-				sizeof(iovbuf), TRUE, 0)) < 0) {
+			ret = dhd_iovar(dhd, 0, "lpc", (char *)&lpc, sizeof(lpc), NULL, 0, TRUE);
+			if (ret < 0) {
 				DHD_ERROR(("[WIFI_SEC] %s: Set lpc failed  %d\n",
 				__FUNCTION__, ret));
 			}
@@ -994,7 +988,6 @@ int dhd_sel_ant_from_file(dhd_pub_t *dhd)
 	uint32 ant_val = 0;
 	uint32 btc_mode = 0;
 	char *filepath = ANTINFO;
-	char iovbuf[WLC_IOCTL_SMLEN];
 	uint chip_id = dhd_bus_chip_id(dhd);
 
 	/* Check if this chip can support MIMO */
@@ -1037,8 +1030,8 @@ int dhd_sel_ant_from_file(dhd_pub_t *dhd)
 
 	/* bt coex mode off */
 	if (dhd_get_fw_mode(dhd->info) == DHD_FLAG_MFG_MODE) {
-		bcm_mkiovar("btc_mode", (char *)&btc_mode, 4, iovbuf, sizeof(iovbuf));
-		ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
+		ret = dhd_iovar(dhd, 0, "btc_mode", (char *)&btc_mode, sizeof(btc_mode), NULL, 0,
+				TRUE);
 		if (ret) {
 			DHD_ERROR(("[WIFI_SEC] %s: Fail to execute dhd_wl_ioctl_cmd(): "
 				"btc_mode, ret=%d\n",
@@ -1048,16 +1041,14 @@ int dhd_sel_ant_from_file(dhd_pub_t *dhd)
 	}
 
 	/* Select Antenna */
-	bcm_mkiovar("txchain", (char *)&ant_val, 4, iovbuf, sizeof(iovbuf));
-	ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
+	ret = dhd_iovar(dhd, 0, "txchain", (char *)&ant_val, sizeof(ant_val), NULL, 0, TRUE);
 	if (ret) {
 		DHD_ERROR(("[WIFI_SEC] %s: Fail to execute dhd_wl_ioctl_cmd(): txchain, ret=%d\n",
 			__FUNCTION__, ret));
 		return ret;
 	}
 
-	bcm_mkiovar("rxchain", (char *)&ant_val, 4, iovbuf, sizeof(iovbuf));
-	ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
+	ret = dhd_iovar(dhd, 0, "rxchain", (char *)&ant_val, sizeof(ant_val), NULL, 0, TRUE);
 	if (ret) {
 		DHD_ERROR(("[WIFI_SEC] %s: Fail to execute dhd_wl_ioctl_cmd(): rxchain, ret=%d\n",
 			__FUNCTION__, ret));
@@ -1155,6 +1146,7 @@ int sec_get_param_wfa_cert(dhd_pub_t *dhd, int mode, uint* read_val)
 #define FIRM_PREFIX "Firm_ver:"
 #define DHD_PREFIX "DHD_ver:"
 #define NV_PREFIX "Nv_info:"
+#define CLM_PREFIX "CLM_ver:"
 #define max_len(a, b) ((sizeof(a)/(2)) - (strlen(b)) - (3))
 #define tstr_len(a, b) ((strlen(a)) + (strlen(b)) + (3))
 
@@ -1176,7 +1168,7 @@ int write_filesystem(struct file *file, unsigned long long offset,
 	return ret;
 }
 
-uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p)
+uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p, char *clm_ver)
 {
 	struct file *fp = NULL;
 	struct file *nvfp = NULL;
@@ -1191,6 +1183,7 @@ uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p)
 	DHD_INFO(("[WIFI_SEC] firmware version   : %s\n", firm_ver));
 	DHD_INFO(("[WIFI_SEC] dhd driver version : %s\n", dhd_ver));
 	DHD_INFO(("[WIFI_SEC] nvram path : %s\n", nvram_p));
+	DHD_INFO(("[WIFI_SEC] clm version : %s\n", clm_ver));
 
 	memset(version_info, 0, sizeof(version_info));
 
@@ -1247,6 +1240,19 @@ uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p)
 		}
 	} else {
 		DHD_ERROR(("[WIFI_SEC] Not exist nvram path\n"));
+	}
+
+	if (strlen(clm_ver)) {
+		min_len = min(strlen(clm_ver), max_len(temp_buf, CLM_PREFIX));
+		min_len += strlen(CLM_PREFIX) + 3;
+		DHD_INFO(("[WIFI_SEC] clm ver length : %d\n", min_len));
+		snprintf(version_info+str_len, min_len, CLM_PREFIX " %s\n", clm_ver);
+		str_len = strlen(version_info);
+
+		DHD_INFO(("[WIFI_SEC] CLM version_info len : %d\n", str_len));
+		DHD_INFO(("[WIFI_SEC] CLM version_info : %s\n", version_info));
+	} else {
+		DHD_ERROR(("[WIFI_SEC] CLM version is missing.\n"));
 	}
 
 	DHD_INFO(("[WIFI_SEC] version_info : %s, strlen : %zu\n",
