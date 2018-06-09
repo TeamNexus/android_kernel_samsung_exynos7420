@@ -87,7 +87,6 @@
 #include <linux/slab.h>
 #include <linux/flex_array.h>
 #include <linux/posix-timers.h>
-#include <linux/cpufreq.h>
 #ifdef CONFIG_HARDWALL
 #include <asm/hardwall.h>
 #endif
@@ -2730,9 +2729,6 @@ static const struct pid_entry tgid_base_stuff[] = {
 #ifdef CONFIG_CHECKPOINT_RESTORE
 	REG("timers",	  S_IRUGO, proc_timers_operations),
 #endif
-#ifdef CONFIG_CPU_FREQ_STAT
-	ONE("time_in_state", 0444, proc_time_in_state_show),
-#endif
 };
 
 static int proc_tgid_base_readdir(struct file * filp,
@@ -3082,9 +3078,6 @@ static const struct pid_entry tid_base_stuff[] = {
 	REG("uid_map",    S_IRUGO|S_IWUSR, proc_uid_map_operations),
 	REG("gid_map",    S_IRUGO|S_IWUSR, proc_gid_map_operations),
 	REG("projid_map", S_IRUGO|S_IWUSR, proc_projid_map_operations),
-#endif
-#ifdef CONFIG_CPU_FREQ_STAT
-	ONE("time_in_state", 0444, proc_time_in_state_show),
 #endif
 };
 
