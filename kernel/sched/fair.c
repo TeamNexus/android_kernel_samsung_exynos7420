@@ -45,6 +45,9 @@
 
 #include "sched.h"
 
+#define HZ_TICK              (1000 / HZ)
+#define HZ_TICK_LATENCY      (HZ_TICK * NSEC_PER_MSEC)
+#define HZ_TICK_GRANULARITY  (HZ_TICK * (NSEC_PER_MSEC / 10) * 2)
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -58,8 +61,8 @@
  * (to see the precise effective timeslice length of your workload,
  *  run vmstat and monitor the context-switches (cs) field)
  */
-unsigned int sysctl_sched_latency = 6000000ULL;
-unsigned int normalized_sysctl_sched_latency = 6000000ULL;
+unsigned int sysctl_sched_latency = HZ_TICK_LATENCY;
+unsigned int normalized_sysctl_sched_latency = HZ_TICK_LATENCY;
 
 /*
  * The initial- and re-scaling of tunables is configurable
@@ -77,13 +80,13 @@ enum sched_tunable_scaling sysctl_sched_tunable_scaling
  * Minimal preemption granularity for CPU-bound tasks:
  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_min_granularity = 750000ULL;
-unsigned int normalized_sysctl_sched_min_granularity = 750000ULL;
+unsigned int sysctl_sched_min_granularity = HZ_TICK_GRANULARITY;
+unsigned int normalized_sysctl_sched_min_granularity = HZ_TICK_GRANULARITY;
 
 /*
  * is kept at sysctl_sched_latency / sysctl_sched_min_granularity
  */
-static unsigned int sched_nr_latency = 8;
+static unsigned int sched_nr_latency = HZ_TICK;
 
 /*
  * After fork, child runs first. If set to 0 (default) then
@@ -99,8 +102,8 @@ unsigned int sysctl_sched_child_runs_first __read_mostly;
  * and reduces their over-scheduling. Synchronous workloads will still
  * have immediate wakeup/sleep latencies.
  */
-unsigned int sysctl_sched_wakeup_granularity = 1000000UL;
-unsigned int normalized_sysctl_sched_wakeup_granularity = 1000000UL;
+unsigned int sysctl_sched_wakeup_granularity = HZ_TICK_GRANULARITY * 2ULL;
+unsigned int normalized_sysctl_sched_wakeup_granularity = HZ_TICK_GRANULARITY * 2ULL;
 
 const_debug unsigned int sysctl_sched_migration_cost = 500000UL;
 
@@ -122,7 +125,7 @@ unsigned int __read_mostly sysctl_sched_shares_window = 10000000UL;
  *
  * default: 5 msec, units: microseconds
   */
-unsigned int sysctl_sched_cfs_bandwidth_slice = 5000UL;
+unsigned int sysctl_sched_cfs_bandwidth_slice = HZ_TICK_LATENCY / 1000ULL;
 #endif
 
 /*
