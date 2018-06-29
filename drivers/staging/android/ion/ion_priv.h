@@ -268,6 +268,11 @@ static inline bool ion_buffer_need_flush_all(struct ion_buffer *buffer)
 	return buffer->size >= ION_FLUSH_ALL_HIGHLIMIT;
 }
 
+static inline unsigned int order_to_size(int order)
+{
+	return PAGE_SIZE << order;
+}
+
 /**
  * ion_device_create - allocates and returns an ion device
  * @custom_ioctl:	arch specific ioctl function if applicable
@@ -495,6 +500,7 @@ struct ion_page_pool {
 	spinlock_t lock;
 	gfp_t gfp_mask;
 	unsigned int order;
+	unsigned int target_order;
 	bool cached;
 	struct plist_node list;
 };

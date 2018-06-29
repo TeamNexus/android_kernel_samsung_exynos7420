@@ -24,25 +24,101 @@
 #include <linux/swap.h>
 #include "ion_priv.h"
 
+#define ROW_SIZE (64 * 1024)
+#define ROW_SIZE_ORDER 4
+
 void *ion_page_pool_alloc_pages(struct ion_page_pool *pool)
 {
-	struct page *page = alloc_pages(pool->gfp_mask, pool->order);
+	struct page *page, *next_page;
+	int pages_to_free;
+	int i;
 
-	if (!page)
-		return NULL;
+	if (pool->cached) {
+		page = alloc_pages(pool->gfp_mask & ~__GFP_ZERO, pool->order);
+		if (!page) {
+			return NULL;
+		}
 
 #ifndef CONFIG_ION_EXYNOS
-	ion_pages_sync_for_device(NULL, page, PAGE_SIZE << pool->order,
-						DMA_BIDIRECTIONAL);
+		ion_pages_sync_for_device(NULL, page, PAGE_SIZE << pool->order, DMA_BIDIRECTIONAL);
 #endif
+
+		return page;
+	}
+
+	/*
+	 * kav: do the followings:
+	 *   1) allocate a bigger order as much as needed (pool->target_order)
+	 *   2) fix up the start address
+	 *   3) return the rest back to buddy
+	 */
+	page = alloc_pages(pool->gfp_mask & ~__GFP_ZERO, pool->target_order);
+	if (!page) {
+		return NULL;
+	}
+
+	if (pool->order <= ROW_SIZE_ORDER) {
+		pages_to_free = ROW_SIZE / PAGE_SIZE;
+		next_page = page + 3 * (ROW_SIZE / PAGE_SIZE);
+	} else {
+		pages_to_free = ((order_to_size(pool->target_order) -
+				order_to_size(pool->order)) - (2 * ROW_SIZE)) / PAGE_SIZE;
+		next_page = page + 2 * (ROW_SIZE / PAGE_SIZE) +
+				(order_to_size(pool->target_order - 1) / PAGE_SIZE);
+	}
+
+	if (pages_to_free) {
+		for (i = 0; i < pages_to_free; i++) {
+			__free_page(next_page);
+			next_page++;
+		}
+	}
+
+#ifndef CONFIG_ION_EXYNOS
+	ion_pages_sync_for_device(NULL, page, PAGE_SIZE << pool->order, DMA_BIDIRECTIONAL);
+#endif
+
 	return page;
 }
 
 static void ion_page_pool_free_pages(struct ion_page_pool *pool,
 				     struct page *page)
 {
-	ion_clear_page_clean(page);
-	__free_pages(page, pool->order);
+	if (pool->cached) {
+		__free_pages(page, pool->order);
+	} else {
+		/*
+		 * kav:
+		 * need to free: ROW + BUFFER + ROW
+		 * BUFFER_SIZE is ROW_SIZE if pool->order <= ROW_SIZE_ORDER
+		 * else it is pool->target_order - 1
+		 */
+		page -= (ROW_SIZE / PAGE_SIZE);
+
+		if (pool->order <= ROW_SIZE_ORDER) {
+			__free_pages(page, ROW_SIZE_ORDER);
+			__free_pages(page + (ROW_SIZE / PAGE_SIZE), ROW_SIZE_ORDER);
+			__free_pages(page + 2 * (ROW_SIZE / PAGE_SIZE), ROW_SIZE_ORDER);
+
+			pr_debug("freed %d bytes for isolated %d bytes. isolated area: %p\n",
+					3 * ROW_SIZE,
+					order_to_size(pool->order),
+					page);
+		} else {
+			__free_pages(page, pool->target_order - 1);
+			__free_pages(page +
+					(order_to_size(pool->target_order - 1) / PAGE_SIZE),
+					ROW_SIZE_ORDER);
+			__free_pages(page +
+					(order_to_size(pool->target_order - 1) / PAGE_SIZE) + (ROW_SIZE / PAGE_SIZE),
+					ROW_SIZE_ORDER);
+
+			pr_debug("freed %d bytes for isolated %d bytes. isolated area: %p\n",
+					order_to_size(pool->target_order - 1) + 2 * ROW_SIZE,
+					order_to_size(pool->order),
+					page);
+		}
+	}
 }
 
 static int ion_page_pool_add(struct ion_page_pool *pool, struct page *page)
@@ -104,7 +180,11 @@ void ion_page_pool_free(struct ion_page_pool *pool, struct page *page)
 {
 	int ret;
 
-	BUG_ON(pool->order != compound_order(page));
+	/*
+	 * kav: the order of the pool no longer matches the compound_order of
+	 * the page after we do row isolation.
+	 */
+	// BUG_ON(pool->order != compound_order(page));
 
 	ret = ion_page_pool_add(pool, page);
 	if (ret)
@@ -328,6 +408,13 @@ struct ion_page_pool *ion_page_pool_create(gfp_t gfp_mask, unsigned int order)
 	pool->order = order;
 	spin_lock_init(&pool->lock);
 	plist_node_init(&pool->list, order);
+
+	/* kav: fixing up the order for RH isolation */
+	if(pool->order <= ROW_SIZE_ORDER) {
+		pool->target_order = ROW_SIZE_ORDER + 2;
+	} else {
+		pool->target_order = pool->order + 1;
+	}
 
 	return pool;
 }

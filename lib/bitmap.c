@@ -14,6 +14,14 @@
 #include <linux/bug.h>
 #include <asm/uaccess.h>
 
+/* @vvdveen - dmasguard
+ *
+ * FIXME I assume one bit is one page (i.e., order_per_bit = 0). I think things
+ * will break if this is not true.
+ */
+#define ROWSIZE_ORDER 5
+#define ROWSIZE_BITS 16
+
 /*
  * bitmaps provide an array of bits, implemented using an an
  * array of unsigned longs.  The number of valid bits in a
@@ -277,6 +285,72 @@ int __bitmap_weight(const unsigned long *bitmap, int bits)
 }
 EXPORT_SYMBOL(__bitmap_weight);
 
+/* @vvdveen - dmasguard */
+void bitmap_guards_enable(unsigned long *map, unsigned long *guard, unsigned long size)
+{
+	/* @Lukas0610: edited to ulong */
+	unsigned long start;
+	unsigned long index;
+
+	for (;;) {
+		index = bitmap_find_next_zero_area(map, size, start, ROWSIZE_BITS, ROWSIZE_BITS-1);
+		if (index > size)
+			return;
+
+		if (index % (ROWSIZE_BITS * 2) == 1) {
+			bitmap_set(  map, index, ROWSIZE_BITS);
+			bitmap_set(guard, index, ROWSIZE_BITS);
+		}
+
+		start = start + ROWSIZE_BITS; // ??
+	}
+}
+
+void bitmap_guards_disable(unsigned long *map, unsigned long *guard, unsigned long size)
+{
+	unsigned long start;
+	unsigned long index;
+
+	/*
+	 * remark @Lukas0610: this original code is complete bullshit
+	 * an endless for-loop without any conditional abortion???
+	 * Anyways, edited code to abort on (index > size)
+	 */
+	start = 0;
+	for (;;) {
+		index = find_next_bit(guard, size, start);
+		if (index > size)
+			return;
+
+		bitmap_clear(  map, index, ROWSIZE_BITS);
+		bitmap_clear(guard, index, ROWSIZE_BITS);
+
+		start = start + ROWSIZE_BITS;
+	}
+}
+
+/* @vvdveen - dmasguard */
+void bitmap_set_guarded(unsigned long *map, unsigned int start, int len, unsigned long *guard,
+					 unsigned long size)
+{
+	/* Normal execution if less than a row is requested */
+	if (len < ROWSIZE_BITS)
+		return bitmap_set(map, start, len);
+
+	/* We assume that bitmap_set_guarded() is always called after a call to
+	 * bitmap_find_next_zero_area_guarded() in which we already disabled all
+	 * guard rows to find a zero area of the request len + 2 guard rows.
+	 *
+	 * With the guard rows disabled, we now allocate the requested size + 2
+	 * guard rows.
+	 */
+	bitmap_set(map, start - ROWSIZE_BITS, len + ROWSIZE_BITS + ROWSIZE_BITS);
+
+	/* Only thing left is to mark all odd rows as guards again */
+	bitmap_guards_enable(map, guard, size);
+}
+EXPORT_SYMBOL(bitmap_set_guarded);
+
 void bitmap_set(unsigned long *map, int start, int nr)
 {
 	unsigned long *p = map + BIT_WORD(start);
@@ -318,6 +392,31 @@ void bitmap_clear(unsigned long *map, int start, int nr)
 	}
 }
 EXPORT_SYMBOL(bitmap_clear);
+
+/* @vvdveen - dmasguard */
+unsigned long bitmap_find_next_zero_area_guarded(unsigned long *map,
+					 unsigned long size,
+					 unsigned long start,
+					 unsigned int nr,
+					 unsigned long align_mask,
+					 unsigned long *guard)
+{
+	unsigned long index;
+	if (size <= ROWSIZE_BITS)
+		return bitmap_find_next_zero_area(map, size, start, nr, align_mask);
+
+	bitmap_guards_disable(map, guard, size);
+	index = bitmap_find_next_zero_area(map, size, start,
+			ROWSIZE_BITS + nr + ROWSIZE_BITS, align_mask);
+
+	/*
+	 * bitmap_set_guarded() will be called next, this is where we take care of
+	 * enabling the guarded rows again.
+	 */
+	return index + ROWSIZE_BITS;
+}
+EXPORT_SYMBOL(bitmap_find_next_zero_area_guarded);
+
 
 /*
  * bitmap_find_next_zero_area - find a contiguous aligned zero area
@@ -1048,6 +1147,11 @@ enum {
 	REG_OP_ISFREE,		/* true if region is all zero bits */
 	REG_OP_ALLOC,		/* set all bits in region */
 	REG_OP_RELEASE,		/* clear all bits in region */
+
+	/* @vvdveen - dmasguard */
+	REG_OP_ISFREE_GUARDED,
+	REG_OP_ALLOC_GUARDED,
+	REG_OP_RELEASE_GUARDED,
 };
 
 static int __reg_op(unsigned long *bitmap, int pos, int order, int reg_op)
@@ -1088,8 +1192,23 @@ static int __reg_op(unsigned long *bitmap, int pos, int order, int reg_op)
 		ret = 1;	/* all bits in region free (zero) */
 		break;
 
+	/* @vvdveen - dmasguard */
+	case REG_OP_ISFREE_GUARDED:
+		for (i = 0; i < nlongs_reg + ROWSIZE_BITS + ROWSIZE_BITS; i++) {
+			if (bitmap[index + i] & mask)
+				goto done;
+		}
+		ret = 1;
+		break;
+
 	case REG_OP_ALLOC:
 		for (i = 0; i < nlongs_reg; i++)
+			bitmap[index + i] |= mask;
+		break;
+
+	/* @vvdveen - dmasguard */
+	case REG_OP_ALLOC_GUARDED:
+		for (i = 0; i < nlongs_reg + ROWSIZE_BITS + ROWSIZE_BITS; i++)
 			bitmap[index + i] |= mask;
 		break;
 
@@ -1097,10 +1216,47 @@ static int __reg_op(unsigned long *bitmap, int pos, int order, int reg_op)
 		for (i = 0; i < nlongs_reg; i++)
 			bitmap[index + i] &= ~mask;
 		break;
+
+	/* @vvdveen - dmasguard */
+	case REG_OP_RELEASE_GUARDED:
+		for (i = 0; i < nlongs_reg + ROWSIZE_BITS + ROWSIZE_BITS; i++)
+			bitmap[index + i] &= ~mask;
+		break;
 	}
 done:
 	return ret;
 }
+
+/* @vvdveen - dmasguard */
+int bitmap_find_free_region_guarded(unsigned long *bitmap, unsigned int bits, int order,
+                                    unsigned long *guard)
+{
+	unsigned int pos, end;		/* scans bitmap by regions of size order */
+
+	if (order < ROWSIZE_ORDER)
+		return bitmap_find_free_region(bitmap, bits, order);
+
+	bitmap_guards_disable(bitmap, guard, bits);
+
+	/*
+	 * We need a custom implementation of bitmap_find_free_region(), so that we
+	 * can let it allocate two additional guard rows instead of an entire extra
+	 * order:
+	 */
+	for (pos = 0 ; (end = pos + (1U << order) + ROWSIZE_BITS + ROWSIZE_BITS) <= bits; pos = end) {
+		if (!__reg_op(bitmap, pos, order, REG_OP_ISFREE_GUARDED))
+			continue;
+
+		__reg_op(bitmap, pos, order, REG_OP_ALLOC_GUARDED);
+		bitmap_guards_enable(bitmap, guard, bits);
+
+		return pos + ROWSIZE_BITS;
+	}
+
+	bitmap_guards_enable(bitmap, guard, bits);
+	return -ENOMEM;
+}
+EXPORT_SYMBOL(bitmap_find_free_region_guarded);
 
 /**
  * bitmap_find_free_region - find a contiguous aligned mem region
@@ -1129,6 +1285,19 @@ int bitmap_find_free_region(unsigned long *bitmap, int bits, int order)
 	return -ENOMEM;
 }
 EXPORT_SYMBOL(bitmap_find_free_region);
+
+/* @vvdveen - dmasguard */
+void bitmap_release_region_guarded(unsigned long *bitmap, unsigned int pos, int order,
+                                   unsigned long *guard, unsigned int size)
+{
+	if (order < ROWSIZE_ORDER)
+		return bitmap_release_region(bitmap, pos, order);
+
+	bitmap_guards_disable(bitmap, guard, size);
+	__reg_op(bitmap, pos - ROWSIZE_BITS, order, REG_OP_RELEASE_GUARDED);
+	bitmap_guards_enable(bitmap, guard, size);
+}
+EXPORT_SYMBOL(bitmap_release_region_guarded);
 
 /**
  * bitmap_release_region - release allocated bitmap region

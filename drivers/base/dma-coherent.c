@@ -14,6 +14,7 @@ struct dma_coherent_mem {
 	int		size;
 	int		flags;
 	unsigned long	*bitmap;
+	unsigned long   *guards; /* @vvdveen - dmasguard */
 };
 
 int dma_declare_coherent_memory(struct device *dev, dma_addr_t bus_addr,
@@ -42,6 +43,11 @@ int dma_declare_coherent_memory(struct device *dev, dma_addr_t bus_addr,
 	dev->dma_mem->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
 	if (!dev->dma_mem->bitmap)
 		goto free1_out;
+
+	/* @vvdveen - dmasguard */
+	dev->dma_mem->guards = kzalloc(bitmap_size, GFP_KERNEL);
+	if (!dev->dma_mem->guards)
+		goto out;
 
 	dev->dma_mem->virt_base = mem_base;
 	dev->dma_mem->device_base = device_addr;
@@ -128,7 +134,7 @@ int dma_alloc_from_coherent(struct device *dev, ssize_t size,
 	if (unlikely(size > (mem->size << PAGE_SHIFT)))
 		goto err;
 
-	pageno = bitmap_find_free_region(mem->bitmap, mem->size, order);
+	pageno = bitmap_find_free_region_guarded(mem->bitmap, mem->size, order, mem->guards);
 	if (unlikely(pageno < 0))
 		goto err;
 
@@ -172,7 +178,7 @@ int dma_release_from_coherent(struct device *dev, int order, void *vaddr)
 		   (mem->virt_base + (mem->size << PAGE_SHIFT))) {
 		int page = (vaddr - mem->virt_base) >> PAGE_SHIFT;
 
-		bitmap_release_region(mem->bitmap, page, order);
+		bitmap_release_region_guarded(mem->bitmap, page, order, mem->guards, mem->size);
 		return 1;
 	}
 	return 0;

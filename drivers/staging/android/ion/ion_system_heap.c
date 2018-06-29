@@ -39,7 +39,7 @@ static gfp_t high_order_gfp_flags = (GFP_HIGHUSER | __GFP_ZERO | __GFP_NOWARN |
 static gfp_t low_order_gfp_flags  = (GFP_HIGHUSER | __GFP_ZERO | __GFP_NOWARN);
 #endif
 
-static const unsigned int orders[] = {8, 4, 0};
+static const unsigned int orders[] = {10, 9, 8, 7, 6, 5, 4, 0};
 static const int num_orders = ARRAY_SIZE(orders);
 static int order_to_index(unsigned int order)
 {
@@ -50,11 +50,6 @@ static int order_to_index(unsigned int order)
 			return i;
 	BUG();
 	return -1;
-}
-
-static inline unsigned int order_to_size(int order)
-{
-	return PAGE_SIZE << order;
 }
 
 struct ion_system_heap {

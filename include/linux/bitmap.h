@@ -113,12 +113,24 @@ extern int __bitmap_subset(const unsigned long *bitmap1,
 extern int __bitmap_weight(const unsigned long *bitmap, int bits);
 
 extern void bitmap_set(unsigned long *map, int i, int len);
+extern void bitmap_set_guarded(unsigned long *map, unsigned int start, int len,
+					 unsigned long *guard,
+					 unsigned long size);
 extern void bitmap_clear(unsigned long *map, int start, int nr);
+extern void bitmap_clear_guarded(unsigned long *map, unsigned int start, int len,
+					 unsigned long *guard,
+					 unsigned long size);
 extern unsigned long bitmap_find_next_zero_area(unsigned long *map,
 					 unsigned long size,
 					 unsigned long start,
 					 unsigned int nr,
 					 unsigned long align_mask);
+extern unsigned long bitmap_find_next_zero_area_guarded(unsigned long *map,
+					 unsigned long size,
+					 unsigned long start,
+					 unsigned int nr,
+					 unsigned long align_mask,
+					 unsigned long *guard);
 
 extern int bitmap_scnprintf(char *buf, unsigned int len,
 			const unsigned long *src, int nbits);
@@ -141,7 +153,11 @@ extern void bitmap_onto(unsigned long *dst, const unsigned long *orig,
 extern void bitmap_fold(unsigned long *dst, const unsigned long *orig,
 		int sz, int bits);
 extern int bitmap_find_free_region(unsigned long *bitmap, int bits, int order);
+extern int bitmap_find_free_region_guarded(unsigned long *bitmap, unsigned int bits, int order,
+					 unsigned long *guard);
 extern void bitmap_release_region(unsigned long *bitmap, int pos, int order);
+extern void bitmap_release_region_guarded(unsigned long *bitmap, unsigned int pos, int order,
+					 unsigned long *guard, unsigned int size);
 extern int bitmap_allocate_region(unsigned long *bitmap, int pos, int order);
 extern void bitmap_copy_le(void *dst, const unsigned long *src, int nbits);
 extern int bitmap_ord_to_pos(const unsigned long *bitmap, int n, int bits);
