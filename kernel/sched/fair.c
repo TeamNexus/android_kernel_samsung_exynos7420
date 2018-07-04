@@ -29,6 +29,7 @@
 #include <linux/mempolicy.h>
 #include <linux/migrate.h>
 #include <linux/task_work.h>
+#include <linux/sched_energy.h>
 
 #include <trace/events/sched.h>
 #ifdef CONFIG_HMP_VARIABLE_SCALE
@@ -44,7 +45,6 @@
 #endif /* CONFIG_HMP_VARIABLE_SCALE */
 
 #include "sched.h"
-
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -1406,6 +1406,7 @@ static __always_inline int __update_entity_runnable_avg(u64 now,
 			sa->usage_avg_sum += delta_w;
 #endif /* #ifdef CONFIG_HMP_FREQUENCY_INVARIANT_SCALE */
 		sa->runnable_avg_period += delta_w;
+		sa->usage_avg_period += delta_w;
 
 		delta -= delta_w;
 
@@ -1418,6 +1419,7 @@ static __always_inline int __update_entity_runnable_avg(u64 now,
 		sa->runnable_avg_period = decay_load(sa->runnable_avg_period,
 						     periods + 1);
 		sa->usage_avg_sum = decay_load(sa->usage_avg_sum, periods + 1);
+		sa->usage_avg_period = decay_load(sa->usage_avg_period, periods + 1);
 		/* add the contribution from this period */
 		/* Efficiently calculate \sum (1..n_period) 1024*y^i */
 		runnable_contrib = __compute_runnable_contrib(periods);
@@ -1439,6 +1441,7 @@ static __always_inline int __update_entity_runnable_avg(u64 now,
 			sa->usage_avg_sum += runnable_contrib;
 #endif /* CONFIG_HMP_FREQUENCY_INVARIANT_SCALE */
 		sa->runnable_avg_period += runnable_contrib;
+		sa->usage_avg_period += runnable_contrib;
 
 		sa->remainder = delta;
 	} else {
@@ -1460,6 +1463,7 @@ static __always_inline int __update_entity_runnable_avg(u64 now,
 		sa->usage_avg_sum += delta;
 #endif /* CONFIG_HMP_FREQUENCY_INVARIANT_SCALE */
 	sa->runnable_avg_period += delta;
+	sa->usage_avg_period += delta;
 
 	return decayed;
 }
@@ -1471,8 +1475,10 @@ static inline u64 __synchronize_entity_decay(struct sched_entity *se)
 	u64 decays = atomic64_read(&cfs_rq->decay_counter);
 
 	decays -= se->avg.decay_count;
-	if (decays)
+	if (decays) {
 		se->avg.load_avg_contrib = decay_load(se->avg.load_avg_contrib, decays);
+		se->avg.utilization_avg_contrib = decay_load(se->avg.utilization_avg_contrib, decays);
+	}
 	se->avg.decay_count = 0;
 	return decays;
 }
@@ -1509,7 +1515,7 @@ static inline void __update_tg_runnable_avg(struct sched_avg *sa,
 	contrib -= cfs_rq->tg_runnable_contrib;
 
 	usage_contrib = div_u64(sa->usage_avg_sum << NICE_0_SHIFT,
-			        sa->runnable_avg_period + 1);
+			        sa->usage_avg_period + 1);
 	usage_contrib -= cfs_rq->tg_usage_contrib;
 
 	/*
@@ -1760,6 +1766,33 @@ static inline struct hmp_domain *hmp_slower_domain(int cpu);
 static inline struct hmp_domain *hmp_faster_domain(int cpu);
 #endif
 
+static inline void __update_task_entity_contrib(struct sched_entity *se);
+static inline void __update_task_entity_utilization(struct sched_entity *se);
+
+static unsigned int capacity_margin = 1280; /* ~20% margin */
+struct static_key __sched_energy_freq __read_mostly = STATIC_KEY_INIT_FALSE;
+
+static unsigned long get_cpu_usage(int cpu);
+
+#define __cpufreq_sched_set_cap(_cpu)         \
+	{                                         \
+		unsigned long req_cap =               \
+			get_cpu_usage(_cpu);              \
+		req_cap = req_cap * capacity_margin   \
+			>> SCHED_CAPACITY_SHIFT;          \
+		cpufreq_sched_set_cap(_cpu, req_cap); \
+	}
+
+#define __cpufreq_sched_reset_cap(_cpu) \
+	{                                   \
+		cpufreq_sched_reset_cap(_cpu);  \
+	}
+
+static inline unsigned long task_utilization(struct task_struct *p)
+{
+	return p->se.avg.utilization_avg_contrib;
+}
+
 static inline void __update_task_entity_contrib(struct sched_entity *se)
 {
 	u32 contrib;
@@ -1769,14 +1802,17 @@ static inline void __update_task_entity_contrib(struct sched_entity *se)
 	contrib /= (se->avg.runnable_avg_period + 1);
 	se->avg.load_avg_contrib = scale_load(contrib);
 	trace_sched_task_load_contrib(task_of(se), se->avg.load_avg_contrib);
+	
 	contrib = se->avg.runnable_avg_sum * scale_load_down(NICE_0_LOAD);
 	contrib /= (se->avg.runnable_avg_period + 1);
 	se->avg.load_avg_ratio = scale_load(contrib);
+
 #ifdef CONFIG_SCHED_HMP
 	if (!hmp_cpu_is_fastest(cpu_of(se->cfs_rq->rq)) &&
 		se->avg.load_avg_ratio > (hmp_power_migration ? hmp_up_power_threshold : hmp_up_threshold))
 		cpu_rq(smp_processor_id())->next_balance = jiffies;
 #endif
+
 	trace_sched_task_runnable_ratio(task_of(se), se->avg.load_avg_ratio);
 }
 
@@ -1788,6 +1824,7 @@ static long __update_entity_load_avg_contrib(struct sched_entity *se, long *rati
 
 	if (entity_is_task(se)) {
 		__update_task_entity_contrib(se);
+		__update_task_entity_utilization(se);
 	} else {
 		__update_tg_runnable_avg(&se->avg, group_cfs_rq(se));
 		__update_group_entity_contrib(se);
@@ -1796,6 +1833,30 @@ static long __update_entity_load_avg_contrib(struct sched_entity *se, long *rati
 	if (ratio)
 		*ratio = se->avg.load_avg_ratio - old_ratio;
 	return se->avg.load_avg_contrib - old_contrib;
+}
+
+static inline void __update_task_entity_utilization(struct sched_entity *se)
+{
+	u32 contrib;
+
+	/* avoid overflowing a 32-bit type w/ SCHED_LOAD_SCALE */
+	contrib = se->avg.usage_avg_sum * scale_load_down(SCHED_LOAD_SCALE);
+	contrib /= (se->avg.usage_avg_period + 1);
+	se->avg.utilization_avg_contrib = scale_load(contrib);
+}
+
+static long __update_entity_utilization_avg_contrib(struct sched_entity *se)
+{
+	long old_contrib = se->avg.utilization_avg_contrib;
+
+	if (entity_is_task(se))
+		__update_task_entity_utilization(se);
+	else
+		se->avg.utilization_avg_contrib =
+				group_cfs_rq(se)->utilization_load_avg +
+				group_cfs_rq(se)->utilization_blocked_avg;
+
+	return se->avg.utilization_avg_contrib - old_contrib;
 }
 
 static inline void subtract_blocked_load_contrib(struct cfs_rq *cfs_rq,
@@ -1807,6 +1868,15 @@ static inline void subtract_blocked_load_contrib(struct cfs_rq *cfs_rq,
 		cfs_rq->blocked_load_avg = 0;
 }
 
+static inline void subtract_utilization_blocked_contrib(struct cfs_rq *cfs_rq,
+						long utilization_contrib)
+{
+	if (likely(utilization_contrib < cfs_rq->utilization_blocked_avg))
+		cfs_rq->utilization_blocked_avg -= utilization_contrib;
+	else
+		cfs_rq->utilization_blocked_avg = 0;
+}
+
 static inline u64 cfs_rq_clock_task(struct cfs_rq *cfs_rq);
 
 /* Update a sched_entity's runnable average */
@@ -1814,7 +1884,7 @@ static inline void update_entity_load_avg(struct sched_entity *se,
 					  int update_cfs_rq)
 {
 	struct cfs_rq *cfs_rq = cfs_rq_of(se);
-	long contrib_delta, ratio_delta;
+	long contrib_delta, ratio_delta, utilization_delta;
 	u64 now;
 	int cpu = -1;   /* not used in normal case */
 
@@ -1835,15 +1905,19 @@ static inline void update_entity_load_avg(struct sched_entity *se,
 		return;
 
 	contrib_delta = __update_entity_load_avg_contrib(se, &ratio_delta);
+	utilization_delta = __update_entity_utilization_avg_contrib(se);
 
 	if (!update_cfs_rq)
 		return;
 
 	if (se->on_rq) {
 		cfs_rq->runnable_load_avg += contrib_delta;
+		cfs_rq->utilization_load_avg += utilization_delta;
 		rq_of(cfs_rq)->avg.load_avg_ratio += ratio_delta;
 	} else {
 		subtract_blocked_load_contrib(cfs_rq, -contrib_delta);
+		subtract_utilization_blocked_contrib(cfs_rq,
+							-utilization_delta);
 	}
 }
 
@@ -1862,7 +1936,10 @@ static void update_cfs_rq_blocked_load(struct cfs_rq *cfs_rq, int force_update)
 
 	if (atomic64_read(&cfs_rq->removed_load)) {
 		u64 removed_load = atomic64_xchg(&cfs_rq->removed_load, 0);
+		u64 removed_utilization = atomic64_xchg(&cfs_rq->removed_utilization, 0);
+
 		subtract_blocked_load_contrib(cfs_rq, removed_load);
+		subtract_utilization_blocked_contrib(cfs_rq, removed_utilization);
 	}
 
 	if (decays) {
@@ -1923,10 +2000,13 @@ static inline void enqueue_entity_load_avg(struct cfs_rq *cfs_rq,
 	/* migrated tasks did not contribute to our blocked load */
 	if (wakeup) {
 		subtract_blocked_load_contrib(cfs_rq, se->avg.load_avg_contrib);
+		subtract_utilization_blocked_contrib(cfs_rq,
+					se->avg.utilization_avg_contrib);
 		update_entity_load_avg(se, 0);
 	}
 
 	cfs_rq->runnable_load_avg += se->avg.load_avg_contrib;
+	cfs_rq->utilization_load_avg += se->avg.utilization_avg_contrib;
 	rq_of(cfs_rq)->avg.load_avg_ratio += se->avg.load_avg_ratio;
 
 	/* we force update consideration on load-balancer moves */
@@ -1947,6 +2027,7 @@ static inline void dequeue_entity_load_avg(struct cfs_rq *cfs_rq,
 	update_cfs_rq_blocked_load(cfs_rq, !sleep);
 
 	cfs_rq->runnable_load_avg -= se->avg.load_avg_contrib;
+	cfs_rq->utilization_load_avg -= se->avg.utilization_avg_contrib;
 	rq_of(cfs_rq)->avg.load_avg_ratio -= se->avg.load_avg_ratio;
 
 	if (sleep) {
@@ -3243,6 +3324,20 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	if (!se) {
 		update_rq_runnable_avg(rq, rq->nr_running);
 		inc_nr_running(rq);
+
+		/*
+		 * We want to trigger a freq switch request only for tasks that
+		 * are waking up; this is because we get here also during
+		 * load balancing, but in these cases it seems wise to trigger
+		 * as single request after load balancing is done.
+		 *
+		 * Also, we add a margin (same ~20% used for the tipping point)
+		 * to our request to provide some head room if p's utilization
+		 * further increases.
+		 */
+		if (flags & ENQUEUE_WAKEUP) {
+			__cpufreq_sched_set_cap(cpu_of(rq));
+		}
 	}
 	hrtick_update(rq);
 }
@@ -3304,6 +3399,24 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	if (!se) {
 		dec_nr_running(rq);
 		update_rq_runnable_avg(rq, 1);
+
+		/*
+		 * We want to trigger a freq switch request only for tasks that
+		 * are going to sleep; this is because we get here also during
+		 * load balancing, but in these cases it seems wise to trigger
+		 * as single request after load balancing is done.
+		 *
+		 * Also, we add a margin (same ~20% used for the tipping point)
+		 * to our request to provide some head room if p's utilization
+		 * further increases.
+		 */
+		if (task_sleep) {
+			if (rq->cfs.nr_running) {
+				__cpufreq_sched_set_cap(cpu_of(rq));
+			} else {
+				__cpufreq_sched_reset_cap(cpu_of(rq));
+			}
+		}
 	}
 	hrtick_update(rq);
 }
@@ -3501,6 +3614,60 @@ static inline unsigned long effective_load(struct task_group *tg, int cpu,
 }
 
 #endif
+
+/*
+ * get_cpu_usage returns the amount of capacity of a CPU that is used by CFS
+ * tasks. The unit of the return value must be the one of capacity so we can
+ * compare the usage with the capacity of the CPU that is available for CFS
+ * task (ie cpu_capacity).
+ *
+ * cfs.utilization_load_avg is the sum of running time of runnable tasks on a
+ * CPU. It represents the amount of utilization of a CPU in the range
+ * [0..capacity_orig] where capacity_orig is the cpu_capacity available at the
+ * highest frequency (arch_scale_freq_capacity()). The usage of a CPU converges
+ * towards a sum equal to or less than the current capacity (capacity_curr <=
+ * capacity_orig) of the CPU because it is the running time on this CPU scaled
+ * by capacity_curr. Nevertheless, cfs.utilization_load_avg can be higher than
+ * capacity_curr or even higher than capacity_orig because of unfortunate
+ * rounding in avg_period and running_load_avg or just after migrating tasks
+ * (and new task wakeups) until the average stabilizes with the new running
+ * time. We need to check that the usage stays into the range
+ * [0..capacity_orig] and cap if necessary. Without capping the usage, a group
+ * could be seen as overloaded (CPU0 usage at 121% + CPU1 usage at 80%) whereas
+ * CPU1 has 20% of available capacity. We allow usage to overshoot
+ * capacity_curr (but not capacity_orig) as it useful for predicting the
+ * capacity required after task migrations (scheduler-driven DVFS).
+ */
+static unsigned long __get_cpu_usage(int cpu, int delta)
+{
+	int sum;
+	struct sched_group_energy *sge = sge_array[cpu][SD_LEVEL0];
+	unsigned long usage = cpu_rq(cpu)->cfs.utilization_load_avg;
+	unsigned long blocked = cpu_rq(cpu)->cfs.utilization_blocked_avg;
+	unsigned long orig_capacity;
+
+	if (!sge) {
+		orig_capacity = SCHED_CAPACITY_SCALE;
+	} else {
+		int max_cap_idx = sge->nr_cap_states - 1;
+		orig_capacity = sge->cap_states[max_cap_idx].cap;
+	}
+
+	sum = usage + blocked + delta;
+
+	if (sum < 0)
+		return 0;
+
+	if (sum >= orig_capacity)
+		return orig_capacity;
+
+	return sum;
+}
+
+static unsigned long get_cpu_usage(int cpu)
+{
+	return __get_cpu_usage(cpu, 0);
+}
 
 static int wake_affine(struct sched_domain *sd, struct task_struct *p, int sync)
 {
@@ -4586,7 +4753,7 @@ static inline unsigned int hmp_task_starvation(struct sched_entity *se)
 	u32 starvation;
 
 	starvation = se->avg.usage_avg_sum * scale_load_down(NICE_0_LOAD);
-	starvation /= (se->avg.runnable_avg_sum + 1);
+	starvation /= (se->avg.usage_avg_period + 1);
 
 	return scale_load(starvation);
 }
@@ -4818,6 +4985,7 @@ migrate_task_rq_fair(struct task_struct *p, int next_cpu)
 		}
 		se->avg.decay_count = -__synchronize_entity_decay(se);
 		atomic64_add(se->avg.load_avg_contrib, &cfs_rq->removed_load);
+		atomic64_add(se->avg.utilization_avg_contrib, &cfs_rq->removed_utilization);
 	}
 }
 #endif
@@ -5705,7 +5873,7 @@ static void update_cpu_power(struct sched_domain *sd, int cpu)
 	unsigned long power = SCHED_CAPACITY_SCALE;
 	struct sched_group *sdg = sd->groups;
 
-	if ((sd->flags & SD_SHARE_CPUPOWER) && weight > 1) {
+	if ((sd->flags & SD_SHARE_CPUCAPACITY) && weight > 1) {
 		if (sched_feat(ARCH_POWER))
 			power *= arch_scale_smt_power(sd, cpu);
 		else
@@ -5788,7 +5956,7 @@ fix_small_capacity(struct sched_domain *sd, struct sched_group *group)
 	/*
 	 * Only siblings can have significantly less than SCHED_CAPACITY_SCALE
 	 */
-	if (!(sd->flags & SD_SHARE_CPUPOWER))
+	if (!(sd->flags & SD_SHARE_CPUCAPACITY))
 		return 0;
 
 	/*
@@ -6463,6 +6631,18 @@ more_balance:
 		local_irq_restore(flags);
 
 		/*
+		 * We want to potentially update env.src_cpu's OPP.
+		 *
+		 * Add a margin (same ~20% used for the tipping point)
+		 * to our request to provide some head room for the remaining
+		 * tasks.
+		 */
+		if (cur_ld_moved) {
+			__cpufreq_sched_set_cap(env.src_cpu);
+			__cpufreq_sched_set_cap(env.dst_cpu);
+		}
+
+		/*
 		 * some other cpu did the load balance for us.
 		 */
 		if (cur_ld_moved && env.dst_cpu != smp_processor_id())
@@ -6726,9 +6906,11 @@ static int active_load_balance_cpu_stop(void *data)
 
 		schedstat_inc(sd, alb_count);
 
-		if (move_one_task(&env))
+		if (move_one_task(&env)) {
 			schedstat_inc(sd, alb_pushed);
-		else
+			__cpufreq_sched_set_cap(env.src_cpu);
+			__cpufreq_sched_set_cap(env.dst_cpu);
+		} else
 			schedstat_inc(sd, alb_failed);
 	}
 	rcu_read_unlock();
@@ -7755,6 +7937,7 @@ static void task_tick_fair(struct rq *rq, struct task_struct *curr, int queued)
 		task_tick_numa(rq, curr);
 
 	update_rq_runnable_avg(rq, 1);
+	__cpufreq_sched_set_cap(cpu_of(rq));
 }
 
 /*
@@ -7859,6 +8042,8 @@ static void switched_from_fair(struct rq *rq, struct task_struct *p)
 		__synchronize_entity_decay(&p->se);
 		subtract_blocked_load_contrib(cfs_rq,
 				p->se.avg.load_avg_contrib);
+		subtract_utilization_blocked_contrib(cfs_rq,
+					se->avg.utilization_avg_contrib);
 	}
 #endif
 }
@@ -7910,6 +8095,7 @@ void init_cfs_rq(struct cfs_rq *cfs_rq)
 #if defined(CONFIG_FAIR_GROUP_SCHED) && defined(CONFIG_SMP)
 	atomic64_set(&cfs_rq->decay_counter, 1);
 	atomic64_set(&cfs_rq->removed_load, 0);
+	atomic64_set(&cfs_rq->removed_utilization, 0);
 #endif
 }
 

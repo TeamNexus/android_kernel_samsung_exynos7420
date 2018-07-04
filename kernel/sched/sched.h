@@ -265,7 +265,8 @@ struct cfs_rq {
 	 * the FAIR_GROUP_SCHED case).
 	 */
 	u64 runnable_load_avg, blocked_load_avg;
-	atomic64_t decay_counter, removed_load;
+	u64 utilization_load_avg, utilization_blocked_avg;
+	atomic64_t decay_counter, removed_load, removed_utilization;
 	u64 last_decay;
 #endif /* CONFIG_FAIR_GROUP_SCHED */
 /* These always depend on CONFIG_FAIR_GROUP_SCHED */
@@ -1046,6 +1047,22 @@ static inline void idle_balance(int cpu, struct rq *rq)
 {
 }
 
+#endif
+
+extern struct static_key __sched_energy_freq;
+static inline bool sched_energy_freq(void)
+{
+	return static_key_false(&__sched_energy_freq);
+}
+
+#ifdef CONFIG_CPU_FREQ_GOV_SCHED
+void cpufreq_sched_set_cap(int cpu, unsigned long util);
+void cpufreq_sched_reset_cap(int cpu);
+#else
+static inline void cpufreq_sched_set_cap(int cpu, unsigned long util)
+{ }
+static inline void cpufreq_sched_reset_cap(int cpu)
+{ }
 #endif
 
 extern void sysrq_sched_debug_show(void);

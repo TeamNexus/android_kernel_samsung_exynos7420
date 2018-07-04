@@ -776,7 +776,7 @@ enum cpu_idle_type {
 };
 
 /*
- * Increase resolution of cpu_power calculations
+ * Increase resolution of cpu_capacity calculations
  */
 #define SCHED_CAPACITY_SHIFT	10
 #define SCHED_CAPACITY_SCALE	(1L << SCHED_CAPACITY_SHIFT)
@@ -835,12 +835,14 @@ extern void wake_up_q(struct wake_q_head *head);
 #define SD_BALANCE_FORK		0x0008	/* Balance on fork, clone */
 #define SD_BALANCE_WAKE		0x0010  /* Balance on wakeup */
 #define SD_WAKE_AFFINE		0x0020	/* Wake task to waking CPU */
-#define SD_SHARE_CPUPOWER	0x0080	/* Domain members share cpu power */
+#define SD_SHARE_CPUCAPACITY	0x0080	/* Domain members share cpu power */
+#define SD_SHARE_POWERDOMAIN	0x0100	/* Domain members share power domain */
 #define SD_SHARE_PKG_RESOURCES	0x0200	/* Domain members share cpu pkg resources */
 #define SD_SERIALIZE		0x0400	/* Only a single load balancing instance */
 #define SD_ASYM_PACKING		0x0800  /* Place busy groups earlier in the domain */
 #define SD_PREFER_SIBLING	0x1000	/* Prefer to place tasks in a sibling domain */
 #define SD_OVERLAP		0x2000	/* sched_domains of this level overlap */
+#define SD_SHARE_CAP_STATES	0x4000  /* Domain members share capacity state */
 
 extern int __weak arch_sd_sibiling_asym_packing(void);
 
@@ -871,6 +873,8 @@ struct sched_group_energy {
 	unsigned int nr_cap_states;	/* number of capacity states */
 	struct capacity_state *cap_states; /* ptr to capacity state array */
 };
+
+unsigned long capacity_curr_of(int cpu);
 
 struct sched_group;
 
@@ -1027,16 +1031,24 @@ struct sched_avg {
 	 * choices of y < 1-2^(-32)*1024.
 	 */
 	u32 runnable_avg_sum, runnable_avg_period;
+	u32 usage_avg_sum, usage_avg_period;
 	u32 remainder;
 	u64 last_runnable_update;
 	s64 decay_count;
-	unsigned long load_avg_contrib;
+	/*
+	 * utilization_avg_contrib describes the amount of time that a
+	 * sched_entity is running on a CPU. It is based on running_avg_sum
+	 * and is scaled in the range [0..SCHED_LOAD_SCALE].
+	 * load_avg_contrib described the amount of time that a sched_entity
+	 * is runnable on a rq. It is based on both runnable_avg_sum and the
+	 * weight of the task.
+	 */
+	unsigned long load_avg_contrib, utilization_avg_contrib;
 	unsigned long load_avg_ratio;
 #ifdef CONFIG_SCHED_HMP
 	u64 hmp_last_up_migration;
 	u64 hmp_last_down_migration;
 #endif
-	u32 usage_avg_sum;
 };
 
 #ifdef CONFIG_SCHED_HMP

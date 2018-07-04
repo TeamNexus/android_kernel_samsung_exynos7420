@@ -5571,7 +5571,7 @@ static int sd_degenerate(struct sched_domain *sd)
 			 SD_BALANCE_NEWIDLE |
 			 SD_BALANCE_FORK |
 			 SD_BALANCE_EXEC |
-			 SD_SHARE_CPUPOWER |
+			 SD_SHARE_CPUCAPACITY |
 			 SD_SHARE_PKG_RESOURCES)) {
 		if (sd->groups != sd->groups->next)
 			return 0;
@@ -5601,7 +5601,7 @@ sd_parent_degenerate(struct sched_domain *sd, struct sched_domain *parent)
 				SD_BALANCE_NEWIDLE |
 				SD_BALANCE_FORK |
 				SD_BALANCE_EXEC |
-				SD_SHARE_CPUPOWER |
+				SD_SHARE_CPUCAPACITY |
 				SD_SHARE_PKG_RESOURCES);
 		if (nr_node_ids == 1)
 			pflags &= ~SD_SERIALIZE;
@@ -6289,7 +6289,7 @@ sd_numa_init(struct sched_domain_topology_level *tl, int cpu)
 					| 0*SD_BALANCE_FORK
 					| 0*SD_BALANCE_WAKE
 					| 0*SD_WAKE_AFFINE
-					| 0*SD_SHARE_CPUPOWER
+					| 0*SD_SHARE_CPUCAPACITY
 					| 0*SD_SHARE_PKG_RESOURCES
 					| 1*SD_SERIALIZE
 					| 0*SD_PREFER_SIBLING
