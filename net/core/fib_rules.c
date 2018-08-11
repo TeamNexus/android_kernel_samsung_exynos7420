@@ -245,12 +245,8 @@ jumped:
 			}
 		} else if (rule->action == FR_ACT_NOP)
 			continue;
-		else {
-			// TRACE: Android P - IP routing [9]
-			pr_info("[netlink] TRACE(%p): Android P - IP routing [9]\n", arg->result);
+		else
 			err = ops->action(rule, fl, flags, arg);
-			// /TRACE
-		}
 
 		if (err != -EAGAIN) {
 			if ((arg->flags & FIB_LOOKUP_NOREF) ||

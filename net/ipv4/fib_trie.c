@@ -1194,10 +1194,7 @@ int fib_table_insert(struct fib_table *tb, struct fib_config *cfg)
 
 	key = key & mask;
 
-	// TRACE: Android P - IP routing [4]
-	pr_info("[netlink] TRACE(%p): Android P - IP routing [4]\n", cfg);
 	fi = fib_create_info(cfg);
-	// /TRACE
 	if (IS_ERR(fi)) {
 		err = PTR_ERR(fi);
 		goto err;

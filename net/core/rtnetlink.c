@@ -2691,9 +2691,7 @@ static int rtnetlink_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 static void rtnetlink_rcv(struct sk_buff *skb)
 {
 	rtnl_lock();
-	// TRACE: Android P - IP routing [1]
 	netlink_rcv_skb(skb, &rtnetlink_rcv_msg);
-	// /TRACE
 	rtnl_unlock();
 }
 
@@ -2732,9 +2730,7 @@ static int __net_init rtnetlink_net_init(struct net *net)
 	struct sock *sk;
 	struct netlink_kernel_cfg cfg = {
 		.groups		= RTNLGRP_MAX,
-		// TRACE: Android P - IP routing [0]
 		.input		= rtnetlink_rcv,
-		// /TRACE
 		.cb_mutex	= &rtnl_mutex,
 		.flags		= NL_CFG_F_NONROOT_RECV,
 	};
