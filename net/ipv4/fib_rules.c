@@ -55,7 +55,10 @@ int __fib_lookup(struct net *net, struct flowi4 *flp, struct fib_result *res)
 	};
 	int err;
 
+	// TRACE: Android P - IP routing [8]
+	pr_info("[netlink] TRACE(%p): Android P - IP routing [8]\n", res);
 	err = fib_rules_lookup(net->ipv4.rules_ops, flowi4_to_flowi(flp), 0, &arg);
+	// /TRACE
 #ifdef CONFIG_IP_ROUTE_CLASSID
 	if (arg.rule)
 		res->tclassid = ((struct fib4_rule *)arg.rule)->tclassid;
@@ -77,7 +80,10 @@ static int fib4_rule_action(struct fib_rule *rule, struct flowi *flp,
 		break;
 
 	case FR_ACT_UNREACHABLE:
+		// TRACE: Android P - IP routing [10]
+		pr_info("[netlink] TRACE(%p): Android P - IP routing [10]\n", arg->result);
 		err = -ENETUNREACH;
+		// / TRACE
 		goto errout;
 
 	case FR_ACT_PROHIBIT:

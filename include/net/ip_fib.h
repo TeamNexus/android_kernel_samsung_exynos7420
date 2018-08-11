@@ -228,6 +228,7 @@ static inline int fib_lookup(struct net *net, const struct flowi4 *flp,
 	table = fib_get_table(net, RT_TABLE_MAIN);
 	if (!fib_table_lookup(table, flp, res, FIB_LOOKUP_NOREF))
 		return 0;
+
 	return -ENETUNREACH;
 }
 
@@ -260,7 +261,10 @@ static inline int fib_lookup(struct net *net, struct flowi4 *flp,
 			return 0;
 		return -ENETUNREACH;
 	}
+	// TRACE: Android P - IP routing [7]
+	pr_info("[netlink] TRACE(%p): Android P - IP routing [7]\n", res);
 	return __fib_lookup(net, flp, res);
+	// /TRACE
 }
 
 #endif /* CONFIG_IP_MULTIPLE_TABLES */

@@ -644,7 +644,10 @@ static int inet_rtm_newroute(struct sk_buff *skb, struct nlmsghdr *nlh)
 		goto errout;
 	}
 
+	// TRACE: Android P - IP routing [3]
+	pr_info("[netlink] TRACE(%p): Android P - IP routing [3]\n", &cfg);
 	err = fib_table_insert(tb, &cfg);
+	// /TRACE
 errout:
 	return err;
 }

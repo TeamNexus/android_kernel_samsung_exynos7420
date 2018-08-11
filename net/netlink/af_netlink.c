@@ -2673,7 +2673,9 @@ int netlink_rcv_skb(struct sk_buff *skb, int (*cb)(struct sk_buff *,
 		if (nlh->nlmsg_type < NLMSG_MIN_TYPE)
 			goto ack;
 
+		// TRACE: Android P - IP routing [2]
 		err = cb(skb, nlh);
+		// /TRACE
 		if (err == -EINTR)
 			goto skip;
 

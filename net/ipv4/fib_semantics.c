@@ -929,7 +929,10 @@ struct fib_info *fib_create_info(struct fib_config *cfg)
 			goto failure;
 	} else {
 		change_nexthops(fi) {
+			// TRACE: Android P - IP routing [5]
+			pr_info("[netlink] TRACE(%p): Android P - IP routing [5]\n", cfg);
 			err = fib_check_nh(cfg, fi, nexthop_nh);
+			// /TRACE
 			if (err != 0)
 				goto failure;
 		} endfor_nexthops(fi)
