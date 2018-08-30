@@ -625,7 +625,6 @@ static int fib_check_nh(struct fib_config *cfg, struct fib_info *fi,
 		}
 		rcu_read_lock();
 		{
-			struct fib_table *tbl = NULL;
 			struct flowi4 fl4 = {
 				.daddr = nh->nh_gw,
 				.flowi4_scope = cfg->fc_scope + 1,
@@ -635,31 +634,15 @@ static int fib_check_nh(struct fib_config *cfg, struct fib_info *fi,
 			/* It is not necessary, but requires a bit of thinking */
 			if (fl4.flowi4_scope < RT_SCOPE_LINK)
 				fl4.flowi4_scope = RT_SCOPE_LINK;
-
-			if (cfg->fc_table)
-				tbl = fib_get_table(net, cfg->fc_table);
-
-			if (tbl)
-				err = fib_table_lookup(tbl, &fl4, &res, 0);
-
-			/* on error or if no table given do full lookup. This
-			 * is needed for example when nexthops are in the local
-			 * table rather than the given table
-			 */
-			if (!tbl || err) {
-				err = fib_lookup(net, &fl4, &res);
-			}
-
+			err = fib_lookup(net, &fl4, &res);
 			if (err) {
-				pr_err("fib_check_nh(): nexthop has invalid gateway (failed lookup/%d)", err);
-				goto out;
+				rcu_read_unlock();
+				return err;
 			}
 		}
 		err = -EINVAL;
-		if (res.type != RTN_UNICAST && res.type != RTN_LOCAL) {
-			pr_err("fib_check_nh(): nexthop has invalid gateway (invalid type/%d)", res.type);
+		if (res.type != RTN_UNICAST && res.type != RTN_LOCAL)
 			goto out;
-		}
 		nh->nh_scope = res.scope;
 		nh->nh_oif = FIB_RES_OIF(res);
 		nh->nh_dev = dev = FIB_RES_DEV(res);
