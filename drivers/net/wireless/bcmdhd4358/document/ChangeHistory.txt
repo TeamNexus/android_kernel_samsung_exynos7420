@@ -1,7 +1,77 @@
-BCM4358 DHD 1.47.52 for Android Lollipop T/Zero Project
-Notes: 
+BCM4358 DHD 1.47.61 for Android T/Zero Project
+Notes:
+- 1.47.x is twigged off from 1.201.39.65
 - Must sync up DHD and FW for additional message to eliminate spurious D0 interrupt.
 . additional message to eliminate spurious D0 interrupt is enabled from DHD 1.47.20 and FW 7.112.20.5/7.112.20.2(IBSS) 
+
+DHD 1.47.61 - 2017.09.07
+Kernel Panic
+ - CS2714944 Fixed the Kernel Panic during dynamic TCP ACK suppress mode change in SDIO platform
+ - CS2993965 Fixed kernel panic by PCIE register access before pcie enumeration
+ - CS3204538 Fixed Kernel panic when D3_ACK timeout is occurred
+
+Security Patch
+ - CVE-2017-0705 Added boundary check in wl_cfgvendor_significant_change_cfg()
+ - CVE-2017-0706 Added boundary check in wl_cfg80211_mgmt_tx()
+ - CVE-2017-0786 V2017060101 Added boundary check in wl_escan_handler()
+ - CVE-2017-0788 V2017053103 Added boundary check in dhd_handle_hotlist_scan_evt()
+ - CVE-2017-0789 V2017053102 Fixed Heap overflow in dhd_handle_swc_evt()
+ - CVE-2017-0790 V2017053101 Added boundary check in dhd_process_full_gscan_result()
+ - CVE-2017-0791 V2017052302 Added event length check in wl_notify_rx_mgmt_frame()
+ - V2017063001 Removed not required IOVAR for SDIO
+ - Enhanced event length check in is_wlc_event_frame()
+ - Fixed overflow issue in wl_android_set_ibss_beacon_ouidata()
+
+Others
+ - CS2472434 Fixed roam failure on PMF required APs
+ - CS2675989 Fixed reverse-order of EAP-Failure and deauth packet
+ - CS2901316 Fixed to send up common error code for Android-O VTS
+ - CS3247015 Fixed disconnection during roaming on CISCO hidden networks
+ - Added P2P IE length check code in wl_find_listen_channel()
+
+
+DHD 1.47.59 - 2017.05.16
+New Feature
+ - CS2608655 Enabled CLM blob download feature
+
+Kernel Panic
+ - CS1969303(CSP:1125179) Enabled dongle_isolation for Exynos7420 platform
+ - CS2017043(CSP:1104692) Fixed pktid audit failure issue with adding memory barrier
+ - CS2477559(CSP:1138383) Implement exception handling routines if DMA mapping error for TX data packet is happened
+
+Security Patch
+ - CVE-2017-0567 Fixed memory buffer overrun with interworking IE
+ - CVE-2017-0570 V2017051815 Removed unused file (wl_iw.c/wl_iw.h)
+ - CVE-2017-0573 V2017051816 Fixed size overflow issue in wl_android_set_roampref()
+ - CVE-2017-0633 Enhanced wrong buffer usage in IOCTL path
+ - CVE-2017-0633 V2017022301 Enhanced wrong buffer usage in IOCTL path
+ - CVE-2017-0740 V2017030901 Fixed length overflow issue in dhd_wl_ioctl() function
+ - CVE-2017-0568 V2017051814 Fixed buffer overrun in wl_run_escan()
+
+Others
+ - CS1661701(CSP:1125141) Enhanced the PKTID error handler
+ - CS1734099(CSP:1095855) Improved DHD_LOG_DUMP feature in order to logging for semi-permanent log
+ - CS1807896(CSP:886357) added random MAC address scan feature
+ - CS1812684(CSP:1100314) Fixed the calculation of read/write offset for debug ring to avoid the possibility of buffer overflow
+ - CS1812688(CSP:1125601) Invalidate PCI configuration saved state in order to reduce PCI resume latency
+ - CS2471300 Fixed Buffer overflow issue
+ - CS2555123 Fixed page fault issue in dhd_wl_ioctl()
+ - CS2642368 Fixed type casting issue in wl_android_send_action_frame()
+ - Added ICMP dump log
+ - Removed unnecessary country code list in translate_custom_table
+
+
+DHD 1.47.56 - 2017.01.24
+Others
+ - CSP:1103989 Unnecessary mpc setting code is removed
+ - CSP:1115484 Fixed Build error with GSCAN
+ - CSP:1118306 Introduce a new wakelock for legacy SCAN
+ - CSP:1118325 Disabled Temperature throttling feature
+ - CSP:1118451 Prevent to duplicate connection request without disconnection
+ - CSP:1120070 Added recovery method when reading shared memory is failed
+ - Enabled "SUPPORT_TRIGGER_HANG_EVENT" for hang test
+ - Fixed vulnerability issues
+
 
 DHD 1.47.52 - 2016.12.30
 Others
@@ -199,7 +269,7 @@ Others
 
 2015.9.4 - DHD 1.47.37
 Kernel Panic
- - CSP:931392 Added Debug logs to trace RC?™s configuration register status
+ - CSP:931392 Added Debug logs to trace RCâ€™s configuration register status
 
 Others
  - CSP:955172 Disabled forward TDLS frame to supplicant when WFD disabled

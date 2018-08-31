@@ -1,7 +1,7 @@
 /*
  * DHD PROP_TXSTATUS Module.
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_wlfc.c 655338 2016-08-19 03:50:52Z $
+ * $Id: dhd_wlfc.c 680008 2017-01-18 07:00:48Z $
  *
  */
 
@@ -2461,7 +2461,11 @@ static void
 _dhd_wlfc_reorderinfo_indicate(uint8 *val, uint8 len, uchar *info_buf, uint *info_len)
 {
 	if (info_len) {
-		if (info_buf) {
+		/* Check copy length to avoid buffer overrun. In case of length exceeding
+		*  WLHOST_REORDERDATA_TOTLEN, return failure instead sending incomplete result
+		*  of length WLHOST_REORDERDATA_TOTLEN
+		*/
+		if ((info_buf) && (len <= WLHOST_REORDERDATA_TOTLEN)) {
 			bcopy(val, info_buf, len);
 			*info_len = len;
 		}

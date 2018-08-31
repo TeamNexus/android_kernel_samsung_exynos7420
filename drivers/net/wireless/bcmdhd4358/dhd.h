@@ -4,7 +4,7 @@
  * Provides type definitions and function prototypes used to link the
  * DHD OS, bus, and protocol modules.
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd.h 675850 2016-12-19 04:41:07Z $
+ * $Id: dhd.h 698065 2017-05-08 02:47:42Z $
  */
 
 /****************
@@ -134,7 +134,15 @@ enum dhd_op_flags {
 #define POWERUP_WAIT_MS		2000 /* ms: time out in waiting wifi to come up */
 #endif
 
+#define MAX_CLM_BUF_SIZE	(32 * 1024) /* max clm blob size */
+
+#ifndef CONFIG_BCMDHD_CLM_PATH
+#define CONFIG_BCMDHD_CLM_PATH "/system/etc/wifi/bcmdhd_clm.blob"
+#endif /* CONFIG_BCMDHD_CLM_PATH */
+#define WL_CCODE_NULL_COUNTRY  "#n"
+
 #define FW_VER_STR_LEN	128
+#define CLM_VER_STR_LEN	128
 
 enum dhd_bus_wake_state {
 	WAKE_LOCK_OFF,
@@ -168,7 +176,8 @@ enum dhd_prealloc_index {
 	DHD_PREALLOC_IF_FLOW_LKUP = 9,
 	DHD_PREALLOC_MEMDUMP_BUF = 10,
 	DHD_PREALLOC_MEMDUMP_RAM = 11,
-	DHD_PREALLOC_DHD_LOG_DUMP_BUF = 12
+	DHD_PREALLOC_DHD_LOG_DUMP_BUF = 12,
+	DHD_PREALLOC_DHD_LOG_DUMP_BUF_EX = 13
 };
 
 enum dhd_dongledump_mode {
@@ -188,7 +197,11 @@ enum dhd_dongledump_type {
 	DUMP_TYPE_SCAN_TIMEOUT,
 	DUMP_TYPE_SCAN_BUSY,
 	DUMP_TYPE_BY_SYSDUMP,
-	DUMP_TYPE_FOR_DEBUG
+	DUMP_TYPE_FOR_DEBUG,
+	DUMP_TYPE_RESUMED_ON_INVALID_RING_RDWR,
+#ifdef SUPPORT_LINKDOWN_RECOVERY
+	DUMP_TYPE_READ_SHM_FAIL
+#endif /* SUPPORT_LINKDOWN_RECOVERY */
 };
 
 enum dhd_hang_reason {
@@ -202,7 +215,9 @@ enum dhd_hang_reason {
 	HANG_REASON_P2P_IFACE_DEL_FAILURE = 0x8007,
 	HANG_REASON_HT_AVAIL_ERROR = 0x8008,
 	HANG_REASON_PCIE_RC_LINK_UP_FAIL = 0x8009,
-	HANG_REASON_MAX = 0x800a
+	HANG_REASON_PCIE_PKTID_ERROR = 0x800A,
+	HANG_REASON_INVALID_EVENT_OR_DATA = 0x8806,
+	HANG_REASON_MAX = 0x8807
 };
 
 /* Packet alignment for most efficient SDIO (can change based on platform) */
@@ -272,7 +287,7 @@ enum {
 #define WIFI_FEATURE_MKEEP_ALIVE        0x100000    /* WiFi mkeep_alive			*/
 #define WIFI_FEATURE_CONFIG_NDO         0x200000    /* ND offload configure		*/
 #define WIFI_FEATURE_TX_TRANSMIT_POWER  0x400000    /* Capture Tx transmit power levels */
-#define WIFI_FEATURE_INVALID            0xFFFFFFFF  /* Invalid Feature                  */
+#define WIFI_FEATURE_INVALID            0xFFFFFFFF  /* Invalid Feature			*/
 
 #define MAX_FEATURE_SET_CONCURRRENT_GROUPS  3
 
@@ -293,18 +308,18 @@ typedef struct {
 struct dhd_log_dump_buf
 {
 	spinlock_t lock;
+	unsigned int enable;
 	unsigned int wraparound;
 	unsigned long max;
 	unsigned int remain;
 	char* present;
 	char* front;
 	char* buffer;
+	struct dhd_log_dump_buf *next;
 };
 
-#define DHD_LOG_DUMP_BUFFER_SIZE	(1024 * 1024)
-#define DHD_LOG_DUMP_MAX_TEMP_BUFFER_SIZE 256
-
-extern void dhd_log_dump_print(const char *fmt, ...);
+#define DHD_LOG_DUMP_MAX_TEMP_BUFFER_SIZE	256
+extern void dhd_log_dump_write(int type, const char *fmt, ...);
 extern char *dhd_log_dump_get_timestamp(void);
 #endif /* DHD_LOG_DUMP */
 #define DHD_COMMON_DUMP_PATH	"/data/misc/wifi/log/"
@@ -391,6 +406,9 @@ typedef struct dhd_pub {
 	int pktfilter_count;
 
 	wl_country_t dhd_cspec;		/* Current Locale info */
+#if defined(DHD_BLOB_EXISTENCE_CHECK)
+	bool is_blob;			/* Checking for existance of Blob file */
+#endif /* DHD_BLOB_EXISTENCE_CHECK */
 	char eventmask[WL_EVENTING_MASK_LEN];
 	int	op_mode;				/* STA, HostAPD, WFD, SoftAP */
 
@@ -533,10 +551,6 @@ typedef struct dhd_pub {
 	uint8 dequeue_prec_map;
 	uint8 prio_8021x;
 #endif
-#ifdef DHD_LOG_DUMP
-	struct dhd_log_dump_buf dld_buf;
-	unsigned int dld_enable;
-#endif /* DHD_LOG_DUMP */
 	bool max_dtim_enable;         /* use MAX bcn_li_dtim value in suspend mode */
 #if defined(PKT_FILTER_SUPPORT) && defined(APF)
 	bool apf_set;
@@ -782,7 +796,7 @@ inline static void MUTEX_UNLOCK_SOFTAP_SET(dhd_pub_t * dhdp)
 #ifdef DHD_USE_SCAN_WAKELOCK
 #ifdef DHD_DEBUG_SCAN_WAKELOCK
 #define PRINT_SCAN_CALL(str) printf("%s: %s %d\n", \
-			str, __FUNCTION__, __LINE__)
+	str, __FUNCTION__, __LINE__)
 #else
 #define PRINT_SCAN_CALL(str)
 #endif /* DHD_DEBUG_SCAN_WAKELOCK */
@@ -899,6 +913,7 @@ extern void dhd_rx_packet_process(dhd_pub_t *dhdp, int ifidx,
 	struct sk_buff *pfirst, uint16 pktcnt);
 
 extern int dhd_os_get_image_block(char * buf, int len, void * image);
+extern int dhd_os_get_image_size(void * image);
 extern void * dhd_os_open_image(char * filename);
 extern void dhd_os_close_image(void * image);
 extern void dhd_os_wd_timer(void *bus, uint wdtick);
@@ -1089,7 +1104,8 @@ extern int dhd_bssidx2idx(dhd_pub_t *dhdp, uint32 bssidx);
 extern struct net_device *dhd_linux_get_primary_netdev(dhd_pub_t *dhdp);
 
 extern bool dhd_is_concurrent_mode(dhd_pub_t *dhd);
-extern int dhd_iovar(dhd_pub_t *pub, int ifidx, char *name, char *cmd_buf, uint cmd_len, int set);
+int dhd_iovar(dhd_pub_t *pub, int ifidx, char *name, char *param_buf, uint param_len,
+		char *res_buf, uint res_len, int set);
 typedef enum cust_gpio_modes {
 	WLAN_RESET_ON,
 	WLAN_RESET_OFF,
@@ -1207,7 +1223,7 @@ extern uint dhd_force_tx_queueing;
 #define CUSTOM_LISTEN_INTERVAL 		LISTEN_INTERVAL
 #endif /* CUSTOM_LISTEN_INTERVAL */
 
-#define DEFAULT_SUSPEND_BCN_LI_DTIM		5
+#define DEFAULT_SUSPEND_BCN_LI_DTIM		3
 #ifndef CUSTOM_SUSPEND_BCN_LI_DTIM
 #define CUSTOM_SUSPEND_BCN_LI_DTIM		DEFAULT_SUSPEND_BCN_LI_DTIM
 #endif
@@ -1254,7 +1270,7 @@ extern uint dhd_force_tx_queueing;
 
 #define MAX_DTIM_SKIP_BEACON_INTERVAL	100 /* max allowed associated AP beacon for DTIM skip */
 #ifndef MAX_DTIM_ALLOWED_INTERVAL
-#define MAX_DTIM_ALLOWED_INTERVAL 900 /* max allowed total beacon interval for DTIM skip */
+#define MAX_DTIM_ALLOWED_INTERVAL 600 /* max allowed total beacon interval for DTIM skip */
 #endif
 #define NO_DTIM_SKIP 1
 #ifdef SDTEST
@@ -1436,6 +1452,10 @@ void custom_rps_map_clear(struct netdev_rx_queue *queue);
 #endif /* CONFIG_MACH_UNIVERSAL5433 || CONFIG_MACH_UNIVERSAL7420 */
 #endif /* (SET_RPS_CPUS || ARGOS_RPS_CPU_CTL) && CUSTOMER_HW4 */
 
+int dhd_download_clm_blob(dhd_pub_t *dhd, unsigned char *image, uint32 len);
+
+int dhd_apply_default_clm(dhd_pub_t *dhd, char *clm_path);
+
 #ifdef CUSTOMER_HW4
 extern void dhd_get_memdump_info(dhd_pub_t *dhd);
 #if defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK)
@@ -1478,5 +1498,17 @@ extern int dhd_prot_debug_info_print(dhd_pub_t *dhd);
 #define TEMP_THROTTLE_CONTROL_BIT 0xD
 #endif
 #endif /* ENABLE_TEMP_THROTTLING */
+
+#if defined(CONFIG_64BIT)
+#define DHD_SUPPORT_64BIT
+#elif defined(DHD_EFI)
+#define DHD_SUPPORT_64BIT
+/* by default disabled for other platforms, can enable appropriate macro to enable 64 bit support */
+#endif /* (linux || LINUX) && CONFIG_64BIT */
+
+#if defined(DHD_BLOB_EXISTENCE_CHECK)
+extern void dhd_set_blob_support(dhd_pub_t *dhdp, char *fw_path);
+#endif /* DHD_BLOB_EXISTENCE_CHECK */
+
 
 #endif /* _dhd_h_ */

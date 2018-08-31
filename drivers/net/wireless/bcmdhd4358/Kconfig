@@ -151,4 +151,4 @@ config SPLIT_ARGOS_SET
 	bool "Support argos table"
 	depends on BROADCOM_WIFI
 	---help---
-	  To support SPLIT_ARGOS_SET
+	To support SPLIT_ARGOS_SET 

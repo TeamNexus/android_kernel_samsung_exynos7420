@@ -4,7 +4,7 @@
  *
  * Definitions subject to change without notice.
  *
- * Copyright (C) 1999-2016, Broadcom Corporation
+ * Copyright (C) 1999-2017, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wlioctl.h 674981 2016-12-13 13:45:06Z $
+ * $Id: wlioctl.h 701469 2017-05-25 05:10:46Z $
  */
 
 #ifndef _wlioctl_h_
@@ -336,6 +336,8 @@ typedef struct wl_bss_config {
 #define DLOAD_FLAG_VER_SHIFT	12	/* Downloader version shift */
 
 #define DL_CRC_NOT_INUSE 			0x0001
+#define DL_BEGIN                0x0002
+#define DL_END                  0x0004
 
 /* generic download types & flags */
 enum {
@@ -5933,6 +5935,13 @@ typedef struct wl_roam_prof_band {
 	uint16	len;			/* length in bytes of this structure */
 	wl_roam_prof_t roam_prof[WL_MAX_ROAM_PROF_BRACKETS];
 } wl_roam_prof_band_t;
+
+/* values for IOV_MFP arg */
+enum {
+    WL_MFP_NONE = 0,
+    WL_MFP_CAPABLE,
+    WL_MFP_REQUIRED
+};
 
 /* no default structure packing */
 #include <packed_section_end.h>
